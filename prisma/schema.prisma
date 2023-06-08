@@ -1,0 +1,424 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Bookmark {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  id_mod Int @default(0)
+  estado String @default("S")
+
+  title  String
+  description String?
+  link String?
+
+  @@map("bookmarks")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  id_mod Int @default(0)
+  estado String @default("S")
+
+  email String @unique
+  hash  String
+  hashRt String?
+  telefono_contacto String?
+  nombre String?
+  apellido  String?
+  isRegisteredWithGoogle Boolean @default(false)
+
+  usuarios usuarios_x_empresas[]
+
+  @@map("usuarios")
+}
+
+model Empresa {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  id_mod Int @default(0)
+  estado String @default("S")
+
+  nombre       String
+  razon_social String?
+  rut        String
+  direccion        String
+  email_contacto        String
+  telefono_contacto        String
+  observaciones        String
+
+  empresas usuarios_x_empresas[]
+
+  articulos Articulo[]
+
+  cpf_stockaux Cpf_stockaux[]
+
+  //cpt_movimiento_stock Cpt_movimiento_stock[]
+
+  cpp_movimiento_stock Cpp_movimiento_stock[]
+
+  @@map("empresas")
+}
+
+model usuarios_x_empresas {
+  
+  usuario       Usuario  @relation(fields: [id_usuario], references: [id])
+  id_usuario     Int
+  empresa   Empresa @relation(fields: [id_empresa], references: [id])
+  id_empresa Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+
+  @@id([id_usuario, id_empresa])
+
+  depositos Deposito[]
+}
+
+model Deposito {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  id_mod Int @default(0)
+  estado String @default("S")
+
+  nombre       String
+  superficie Int?
+  dicose        String?
+  latitud        String?
+  longitud        String?
+  superficie_arrendada        Int?
+  departamento Departamento @relation(fields: [id_departamento], references: [id])
+  id_departamento Int
+
+  id_usuario Int
+  id_empresa Int
+  usuarios_x_empresas usuarios_x_empresas @relation(fields: [id_usuario,id_empresa], references: [id_usuario, id_empresa])
+
+  cpf_stockaux Cpf_stockaux[]
+
+  @@map("depositos")
+}
+
+model Departamento {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  descripcion String
+
+  depositos Deposito[]
+
+  @@map("departamentos")
+  
+}
+
+model Estado_ganado {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+
+  descripcion String
+
+  //cpt_movimiento_stock Cpt_movimiento_stock[]
+
+  @@map("estados_ganado")
+
+}
+
+model Propiedad_ganado {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+
+  descripcion String
+
+  cpt_movimiento_stock Cpt_movimiento_stock[]
+
+  @@map("propiedad_ganado")
+
+}
+
+model Tipo_ganado {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+
+  descripcion String
+  categorias_ganado Categoria_ganado[]
+  marcas_ganado Marca_ganado[]
+
+
+  @@map("tipos_ganado")
+  
+}
+
+model Categoria_ganado {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+
+  descripcion String
+  tipo_ganado  Tipo_ganado @relation(fields: [id_tipo_ganado], references: [id])
+  id_tipo_ganado Int
+
+  articulos Articulo[]
+
+  @@map("categorias_ganado")
+  
+}
+
+
+model Marca_ganado {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+
+  descripcion String
+  tipo_ganado  Tipo_ganado @relation(fields: [id_tipo_ganado], references: [id])
+  id_tipo_ganado Int
+
+
+  articulos Articulo[]
+
+  @@map("marcas_ganado")
+  
+}
+
+model Estado_stock {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  descripcion String
+  es_fisico String @default("S")
+
+  cpf_stockaux Cpf_stockaux[]
+
+  @@map("estados_stock")
+  
+}
+
+model Tipo_toma_peso {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  descripcion String
+ 
+
+  cpt_movimiento_stock Cpt_movimiento_stock[]
+
+  @@map("tipos_toma_peso")
+  
+}
+
+model Unidad_stock {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  descripcion String
+  descripcion_corta String
+  articulos Articulo[]
+  cpf_stockaux Cpf_stockaux[]
+
+  @@map("unidades_stock")
+  
+}
+
+model Motivo_sanitario {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  descripcion String
+
+  @@map("motivos_sanitarios")
+  
+}
+
+model Motivo_mov_stock {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  descripcion String
+  naturaleza Int
+  cod_docum String
+
+  cpf_stockaux Cpf_stockaux[]
+
+  cpt_movimiento_stock Cpt_movimiento_stock[] 
+
+  @@map("motivos_mov_stock")
+  
+}
+
+model Articulo {
+  id        Int      @id @default(autoincrement())
+  cod_articulo String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  nombre String
+
+
+
+  unidad_stk  Unidad_stock @relation(fields: [id_unidad_stk], references: [id])
+  id_unidad_stk Int
+  
+  categorias_ganado  Categoria_ganado @relation(fields: [id_categoria_ganado], references: [id])
+  id_categoria_ganado Int
+
+  marcas_ganado  Marca_ganado @relation(fields: [id_marca_ganado], references: [id])
+  id_marca_ganado Int
+
+  empresas   Empresa @relation(fields: [id_empresa], references: [id])
+  id_empresa Int
+
+  cpf_stockaux Cpf_stockaux[]
+
+  cpt_movimiento_stock Cpt_movimiento_stock[]
+
+  cpp_movimiento_stock Cpp_movimiento_stock[]
+
+  @@map("articulos")
+  
+}
+
+model Cpf_stockaux {
+  id        Int  @id @default(autoincrement())
+  nro_trans Int 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  cantidad Decimal?  @default(1)
+  cantidad2 Decimal?
+  cantidad3 Decimal?
+  signo Int?
+  nro_lote Int? @default(0)
+  cod_identidad String?
+  fecha DateTime?
+
+  motivos_stock  Motivo_mov_stock @relation(fields: [id_motivo_stk], references: [id])
+  id_motivo_stk Int
+
+  articulos Articulo @relation(fields: [cod_articulo], references: [cod_articulo])
+  cod_articulo String
+
+  unidad_stk  Unidad_stock @relation(fields: [id_unidad_stk], references: [id])
+  id_unidad_stk Int
+
+  empresas   Empresa @relation(fields: [id_empresa], references: [id])
+  id_empresa Int
+
+  estados_stock   Estado_stock @relation(fields: [id_estado_stock], references: [id])
+  id_estado_stock Int
+
+  despositos  Deposito @relation(fields: [id_deposito], references: [id])
+  id_deposito Int
+
+  @@map("cpf_stockaux")
+  
+}
+
+model Cpt_movimiento_stock {
+  id        Int      @id @default(autoincrement())
+  nro_trans Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  peso_total_real Decimal?
+  peso_total_facturado Decimal?
+  cantidad_ganado Decimal?
+  fecha DateTime?
+  serie_guia String?
+  nro_guia String?
+  dicoses  Dicose @relation(fields: [valor_dicose], references: [id])
+  valor_dicose Int
+  propiedad_ganado  Propiedad_ganado @relation(fields: [id_propiedad_ganado], references: [id])
+  id_propiedad_ganado Int
+
+  articulos Articulo @relation(fields: [cod_articulo], references: [cod_articulo])
+  cod_articulo String
+
+  tipos_toma_peso Tipo_toma_peso @relation(fields: [id_tipo_toma_peso], references: [id])
+  id_tipo_toma_peso Int
+
+  motivos_stock  Motivo_mov_stock @relation(fields: [id_motivo_stk], references: [id])
+  id_motivo_stk Int
+
+  //empresas   Empresa @relation(fields: [id_empresa], references: [id])
+  id_empresa Int  @default(1)
+
+  @@map("cpt_movimiento_stock")
+  
+}
+
+
+
+model Cpp_movimiento_stock {
+  id        Int      @id @default(autoincrement())
+  nro_trans Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  cantidad Decimal?
+  cantidad2 Decimal?
+  cantidad3 Decimal?
+  fecha DateTime?
+  nro_lote Int @default(0)
+  cod_identidad String?
+  articulos Articulo @relation(fields: [cod_articulo], references: [cod_articulo])
+  cod_articulo String
+  empresas   Empresa @relation(fields: [id_empresa], references: [id])
+  id_empresa Int
+
+  @@map("cpp_movimiento_stock")
+  
+}
+
+model Numerador {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  descripcion String
+  valor Int
+
+  @@map("numeradores")
+  
+}
+
+model Dicose {
+  id Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  estado String @default("S")
+  descripcion String?
+  
+
+  cpt_movimiento_stock Cpt_movimiento_stock[]
+
+  @@map("dicoses")
+  
+}
