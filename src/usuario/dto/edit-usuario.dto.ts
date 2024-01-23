@@ -1,6 +1,7 @@
 import {
   IsBoolean,
     IsEmail,
+    IsNumber,
     IsOptional,
     IsString,
   } from 'class-validator';
@@ -25,6 +26,20 @@ import {
     @IsBoolean()
     @IsOptional()
     isRegisteredWithGoogle?: boolean;
-    
+
+
+    @IsString()
+    @IsOptional()
+    token_recuperacion_pass: string;
+
+    @IsNumber()
+    @IsOptional()
+    id_rol: number;
+
+    @IsNumber()
+    @IsOptional()
+    id_empresa: number;
+
+
   }
   

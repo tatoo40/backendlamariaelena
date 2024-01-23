@@ -3,14 +3,16 @@ import {
   Injectable
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { AuthDto } from './dto';
+import { AuthDto,NuevoPermiso } from './dto';
 import * as argon from 'argon2';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UserDetails } from '../auth/utils/types'
 import { OAuth2Client } from 'google-auth-library';
-
+import { RecoverDto } from './dto/recover.dto';
+import { NewPassDto } from './dto/newPass.dto';
+import moment = require("moment");
 
 @Injectable()
 
@@ -19,20 +21,25 @@ export class AuthService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService
+    //private envioCorreo: 
 
   ) {}
   
   hashData(data:string){
     return argon.hash(data)
   }
+
+
+
   async signup(dto: AuthDto) {
 
 
-  
+    
     // generate the password hash
     const hash = await argon.hash(dto.hash);
     // save the new user in the db
     try {
+    
       const usuario = await this.prisma.usuario.create({
         data: {
           
@@ -40,10 +47,85 @@ export class AuthService {
           nombre: dto.nombre,
           apellido: dto.apellido,
           hash,
-          hashRt:''
+          hashRt:'',
+          isRegisteredWithGoogle:false,
+          id_rol:dto.id_rol
   
-        },
+        }
       });
+
+      //vinculo el usuario con la empresa
+      const usuario_x_empresa = await this.prisma.usuarios_x_empresas.create({
+        data:{
+          id_usuario:usuario.id,
+          id_empresa:dto.id_empresa
+
+        }
+
+      })
+
+
+      //Genero los pemrisos para el rol definido
+      const format = 'YYYY-MM-DDT00:00:00.000Z';
+      const myDate = new Date();
+      const formattedDate = moment(myDate, 'DD/MM/YYYY').format(format);
+
+     // console.log(formattedDate);
+
+
+
+
+    //
+      const permisos:any = await this.prisma.$queryRaw<NuevoPermiso[]>`SELECT  nextval('permisos_x_usuario_seccion_id_seq'::regclass) id,
+      ${formattedDate} createdAt,${formattedDate} updatedAt,'S' estado,
+      ${usuario.id} id_usuario,permisos_x_rol_seccion.id_seccion, permisos_x_rol_seccion.id_accion ,${usuario.id} id_mod
+      FROM permisos_x_rol_seccion
+      WHERE permisos_x_rol_seccion.id_rol=${usuario.id_rol}`;     
+
+      //console.log(permisos);
+      //BLOQUE DE TRANSFORMACION DEL JSON DEVUELTO POR PRISMA
+      //CONVIERTO LOS STRING EN INT
+      [].forEach.call(permisos, function(inst, i){
+        // Iterate through all the keys
+          [].forEach.call(Object.keys(inst), function(y){
+              // Check if string is Numerical string
+               if(!isNaN(permisos[i][y]))
+                  //Convert to numerical value
+                  permisos[i][y] = +permisos[i][y];
+          });
+          
+      });
+      var nuevoArray=[];
+
+      //LOS CAMPOS QUE DEJO EN MINUSCUAS LOS PONGO COMO TIENEN QUE SER EN OTRO ARRAY
+      for(var i in permisos) {    
+
+          var item = permisos[i];   
+
+          nuevoArray.push({ 
+              "createdAt" : item.createdat,
+              "estado"  : item.estado,
+              "id"       : item.id,
+              "id_accion" : item.id_accion,
+              "id_mod"  : item.id_mod,
+              "id_seccion"       : item.id_seccion,
+              "id_usuario"  : item.id_usuario,
+              "updatedAt"       : item.updatedat,              
+          });
+      }
+
+      //console.log(nuevoArray);
+      //const permisosInserto:any = JSON.parse(permisos);
+
+      const createMany = await this.prisma.permisos_x_usuario_seccion.createMany({
+        data: nuevoArray,
+        skipDuplicates: true, // Skip 'Bobo'
+   
+      })
+
+      //console.log(createMany);
+
+
 
       const tokens = await this.getTokens(usuario.id, usuario.email);
       
@@ -91,12 +173,15 @@ export class AuthService {
   async signin(dto: AuthDto) {
     // find the user by email
 
+    //console.log('aca');
     const usuario =
       await this.prisma.usuario.findUnique({
         where: {
           email: dto.email,
         },
       });
+
+    //console.log(usuario);  
     // if user does not exist throw exception
     if (!usuario)
       throw new ForbiddenException(
@@ -120,10 +205,117 @@ export class AuthService {
       
     await this.updateRtHash(usuario.id,tokens.refresh_Token)
 
-    return this.signToken(usuario.id, usuario.email);
-  }
+
+    const tokenRetorno = await this.signToken(usuario.id, usuario.email);
+
 
   
+
+    const varRetorno:any = {
+
+      token:tokenRetorno,
+      datos:usuario
+    
+    }
+
+    return varRetorno;
+
+
+  }
+
+  async newPass(dto: NewPassDto) {
+
+
+    const usuario =
+      await this.prisma.usuario.findFirst({
+        where: {
+          token_recuperacion_pass: dto.token,
+          
+        },
+      });
+
+  
+    if (!usuario)
+      throw new ForbiddenException(
+        'Credentials incorrect',
+      );
+
+
+    const hash = await argon.hash(dto.hash); 
+
+    return this.prisma.usuario.update({
+      where: {
+        id: usuario.id,
+      },
+      data: {
+        hash:hash,
+        token_recuperacion_pass:''
+      },
+    });  
+
+    //enviar correo con las intrucciones al usuario
+    //envioCorreoUsuario()
+
+
+
+    
+    //const tokens = await this.getTokens(usuario.id, usuario.email);
+      
+    //await this.updateRtHash(usuario.id,tokens.refresh_Token)
+
+    return usuario;
+
+
+
+  }
+  
+  async recover(dto: RecoverDto) {
+    // find the user by email
+
+
+    //console.log('sadsdasdas')
+
+    const usuario =
+      await this.prisma.usuario.findUnique({
+        where: {
+          email: dto.email,
+        },
+      });
+
+    //console.log(usuario);  
+    // if user does not exist throw exception
+    if (!usuario)
+      throw new ForbiddenException(
+        'Credentials incorrect',
+      );
+
+    const hash = await argon.hash(dto.email);  
+
+    return this.prisma.usuario.update({
+      where: {
+        id: usuario.id,
+      },
+      data: { 
+        token_recuperacion_pass:hash
+      },
+    });  
+    //enviar correo con las intrucciones al usuario
+    //envioCorreoUsuario()
+
+    
+    //const tokens = await this.getTokens(usuario.id, usuario.email);
+      
+    //await this.updateRtHash(usuario.id,tokens.refresh_Token)
+
+    return usuario;
+
+
+
+  }
+
+
+
+
   async signToken(
     userId: number,
     email: string,
@@ -137,7 +329,7 @@ export class AuthService {
     const token = await  this.jwt.signAsync(
       payload,
       {
-        expiresIn: '15m',
+        expiresIn: '60m',
         secret: secret,
       },
     );
@@ -267,7 +459,8 @@ export class AuthService {
             apellido: payload.family_name,
             hash:'@@@',
             hashRt:'',
-            isRegisteredWithGoogle:true
+            isRegisteredWithGoogle:true,
+            id_rol:1
     
           },
         });
@@ -323,4 +516,127 @@ export class AuthService {
   }
 
 
+
+
+
+
+
+  async verifyToken(req,res){
+    if(!req.headers.authorization) return res.status(401).json('No autorizado');
+  
+    const token = req.headers.authorization.substr(7);
+
+    if(token!==''){
+      
+      const content = this.jwt.verify(token);
+      req.data = content;
+
+    }else{
+      
+      res.status(401).json('Token vacio');
+    
+    }
+  
+  }
+
+
+  async validoToken(req, res) {
+    if (!req.headers.authorization) {
+      return res.status(401).json('No autorizado');
+    }
+  
+    const token = req.headers.authorization.split(' ')[1];
+    console.log(token)
+    if (token) {
+      try {
+        const content = this.jwt.verify(token);
+        req.data = content;
+      } catch (error) {
+        return res.status(401).json('Token inválido');
+      }
+    } else {
+      return res.status(401).json('Token vacío');
+    }
+  }
+    async validarToken(token: string): Promise<boolean> {
+      try {
+        // Verificar el token utilizando el servicio JwtService
+        const decodedToken = this.jwt.verify(token);
+        // Realizar cualquier validación adicional necesaria
+        // ...
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+
+
+
+  
+
+
+
+async verificoTokenUsuario(token){
+
+  const client = new OAuth2Client(process.env.GOOGLE_AUTH_CLIENT_SECRET)
+  const ticket = await client.verifyIdToken({
+    idToken:token,
+    audience:process.env.GOOGLE_AUTH_CLIENT_ID
+  });
+
+  const payload = ticket.getPayload();
+  const userid = payload['sub'];
+
+
+  const usuarioDb = await this.prisma.usuario.findUnique({
+    where:{
+      email:payload.email
+    }
+
+  })
+  if (!usuarioDb){
+
+      const usuario = await this.prisma.usuario.create({
+        data: {
+          
+          email: payload.email,
+          nombre: payload.given_name,
+          apellido: payload.family_name,
+          hash:'@@@',
+          hashRt:'',
+          isRegisteredWithGoogle:true,
+          id_rol:1
+  
+        },
+      });
+
+      const tokens = await this.getTokens(usuario.id, usuario.email);
+      
+      await this.updateRtHash(usuario.id,tokens.refresh_Token)
+      
+      return this.signToken(usuario.id, usuario.email);            
+
+  }else{
+
+      await this.prisma.usuario.updateMany({
+        where:{
+          id:usuarioDb.id
+        },
+        data:{
+          isRegisteredWithGoogle:true
+        }
+      })
+
+      return this.signToken(usuarioDb.id, usuarioDb.email); 
+
+  }
+
+    
+
 }
+
+
+}
+
+

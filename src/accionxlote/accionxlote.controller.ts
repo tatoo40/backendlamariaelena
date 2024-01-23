@@ -10,11 +10,13 @@ import {
     Patch,
     Post,
     UseGuards,
+    ValidationPipe,
     
   } from '@nestjs/common';
 
   import { JwtGuard } from '../auth/guard';
   import { AccionxloteService } from './accionxlote.service';
+import { Public } from 'src/auth/decorator';
 
   //import {CreateBookmarkDto,EditBookmarkDto} from './dto';
   
@@ -42,14 +44,24 @@ import {
 
       );
     }
- 
+
+
+
+
+    //@Public()
+    @HttpCode(HttpStatus.OK)
     @Post(':accion')
     accionxlote( 
       @Param('accion') accion:string,
-      @Body() dto
+      @Body('formData') dto
 
     ) 
     {
+
+      //console.log('sdasdasddasdsad')
+      //console.log(dto)
+      
+      //console.log(JSON.stringify(dto));
 
 
       return this.AccionxloteService.accionxlote(

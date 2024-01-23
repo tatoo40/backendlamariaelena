@@ -14,6 +14,7 @@ async function bootstrap() {
       whitelist: true,
     }),
   );
+
   app.use(
     session({
       secret:'fsdfsdjfjdshfjkshfkjsdhfjksdhfs',
@@ -24,6 +25,11 @@ async function bootstrap() {
       }
     })
   )
+ 
+
+
+
+  
  
   app.use(passport.initialize());
   app.use(passport.session());

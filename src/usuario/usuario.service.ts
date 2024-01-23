@@ -63,7 +63,9 @@ import {
                   telefono_contacto: dto.telefono_contacto,
                   id_mod: 1,             
                   hash,
-                  hashRt:''
+                  hashRt:'',
+                  id_rol:dto.id_rol,
+                  isRegisteredWithGoogle:dto.isRegisteredWithGoogle
                 },
             });
 
