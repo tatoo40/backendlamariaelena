@@ -1,6 +1,10 @@
 import {
+  ConflictException,
   ForbiddenException,
-  Injectable
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthDto,NuevoPermiso } from './dto';
@@ -12,15 +16,31 @@ import { UserDetails } from '../auth/utils/types'
 import { OAuth2Client } from 'google-auth-library';
 import { RecoverDto } from './dto/recover.dto';
 import { NewPassDto } from './dto/newPass.dto';
+import { CompanyDto }  from './dto/company.dto'
 import moment = require("moment");
+import * as fs from 'fs';
+import { MailerService } from '@nestjs-modules/mailer';
+
+
+export type SendEmailDto = {
+
+  sender?: string;
+  recipients: string;
+  subject:string;
+  text:string;
+  html:string;
+
+}
 
 @Injectable()
 
 export class AuthService {
+
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
-    private config: ConfigService
+    private config: ConfigService,
+    private mailerService: MailerService
     //private envioCorreo: 
 
   ) {}
@@ -31,11 +51,252 @@ export class AuthService {
 
 
 
+
+
+    // oauth2Client.getAccessToken((err, token) => {
+    //     if (err)
+    //         return console.log(err);;
+    //     accountTransport.auth.accessToken = token;
+    //     callback(nodemailer.createTransport(accountTransport));
+    // });
+
+
+async sendEmail(dto:SendEmailDto){
+  const { sender, recipients, subject, text,html } = dto;
+
+  // const sender: string | Address = dto.sender ?? {
+  //   name:this.config.get<string>('APPNAME'),
+  //   address:this.config.get<string>('EMAIL_SENDER')
+  // }
+
+
+
+  try{
+    const result = await this.mailerService.sendMail({
+
+      from:sender,
+      to:recipients,
+      subject,
+      text,
+      html
+  
+    });
+    console.log(result)
+    return result;
+
+  }catch(error){
+
+    console.log('error:',error)
+
+
+  }
+
+}
+  
+async companySignup(dto: CompanyDto) {
+
+
+
+  // generate the password hash
+  //const hash = await argon.hash(dto.hash);
+  // save the new user in the db
+  const payload = {
+    sub: dto.email_contacto
+  };
+  const secret = this.config.get('JWT_SECRET');
+
+
+
+  const token = await  this.jwt.signAsync(
+    payload,
+    {
+      expiresIn: '60m',
+      secret: secret,
+    },
+  );
+
+
+  try {
+  
+     const usuario = await this.prisma.empresa.create({
+      data: {
+        
+        email_contacto: dto.email_contacto,
+        nombre: dto.nombre,
+        rut: dto.rut,
+        razon_social: dto.razon_social,
+        direccion: dto.direccion,
+        activa:false,
+        aprobada:false,
+        token:token,
+        telefono_contacto:dto.telefono_contacto,
+        observaciones:''
+
+
+      }
+    });
+ 
+
+    const dtoEmailAdmin: SendEmailDto = {
+      sender: '"No reply"<no-reply@ganao.app>',
+      recipients:  'jfernandezberrutti@gmail.com',
+      subject: 'Nueva Solicitud de Registro de Empresa',
+      text: `Hola,\n\nSe ha recibido una nueva solicitud de registro de la empresa "${dto.nombre}".\n\nSaludos,`,
+      html: `<h3>Hola,</h3><p>Se ha recibido una nueva solicitud de registro de la empresa "${dto.nombre}".</p><p>Saludos,</p>`
+    };
+
+    this.sendEmail(dtoEmailAdmin);
+    
+
+    const htmlContent = fs.readFileSync('/Users/tato/Desktop/ganao/backend/backendlamariaelena/src/htmlcorreos/registroempresausuario.html', 'utf8');
+
+    const dtoEmailUsu: SendEmailDto = {
+      sender: '"No reply"<no-reply@ganao.app>',
+      recipients:  dto.email_contacto,
+      subject: 'Nueva Solicitud de Registro de Empresa',
+      text: `Hola,\n\nSe ha recibido una nueva solicitud de registro de la empresa "${dto.nombre}".\n\nSaludos,`,
+      html: htmlContent
+    };
+
+    this.sendEmail(dtoEmailUsu); 
+
+    //Genero los pemrisos para el rol definido
+    const format = 'YYYY-MM-DDT00:00:00.000Z';
+    const myDate = new Date();
+    const formattedDate = moment(myDate, 'DD/MM/YYYY').format(format);
+
+    const tokens = await this.getTokens(usuario.id, usuario.email_contacto);
+      
+    //await this.updateRtHash(usuario.id,tokens.refresh_Token)
+    
+    return this.signToken(usuario.id, usuario.email_contacto);
+    
+    //return 'Empresa ha sido preinscripta con exito. Verificaremos y le enviaremos un correo con los pasos a seguir';
+    
+  } catch (error) {
+    
+     if (
+      error instanceof
+      PrismaClientKnownRequestError
+    ) {
+      if (error.code === 'P2002') {
+        throw new ForbiddenException(
+           'Ha ocurrido un error'
+       
+
+        );
+      }
+    }
+    throw error; 
+  }
+}
+
+
+async aprueboTokenEmpresa(token){
+
+  console.log(token)
+  const empresa = await this.prisma.empresa.findFirst({
+    where: { token: token },
+  });
+
+
+  console.log(empresa)
+  if (!empresa) {
+    throw new NotFoundException(`Token invalido`);
+  }
+    // Verificar si la empresa ya ha sido aprobada antes
+    if (empresa.aprobada) {
+        // Actualizar el campo 'aprobada' a true
+        // await this.prisma.empresa.update({
+        //   where: { id: empresa.id },
+        //   data: { token: '',activa:true },
+        // });
+
+        return empresa.id
+    }
+
+
+
+}
+  
+
+
+async aprobarEmpresa(idEmpresa: number): Promise<string> {
+  // Buscar la empresa en la base de datos
+  const empresa = await this.prisma.empresa.findUnique({
+    where: { id: idEmpresa },
+  });
+
+  // Verificar si la empresa existe
+  if (!empresa) {
+    throw new NotFoundException(`Empresa con ID ${idEmpresa} no encontrada`);
+  }
+    // Verificar si la empresa ya ha sido aprobada antes
+    if (empresa.aprobada) {
+      throw new ConflictException(`La empresa con ID ${idEmpresa} ya ha sido aprobada previamente`);
+    }
+  // Actualizar el campo 'aprobada' a true
+  await this.prisma.empresa.update({
+    where: { id: idEmpresa },
+    data: { aprobada: true },
+  });
+
+  const payload = {
+    sub: empresa.email_contacto
+  };
+  const secret = this.config.get('JWT_SECRET');
+
+
+
+  const token = await  this.jwt.signAsync(
+    payload,
+    {
+      expiresIn: '60m',
+      secret: secret,
+    },
+  );
+//const token = uuidv4(); // Reemplaza esto con tu lógica para generar un token único
+
+    // Enviar correo electrónico al correo de contacto de la empresa con el enlace de activación
+    await this.enviarCorreoActivacion(empresa.email_contacto, empresa.token);
+
+
+
+    return 'Empresa aprobada con éxito';
+}
+
+async enviarCorreoActivacion(correoContacto: string, token: string): Promise<void> {
+  // Construir el enlace de activación
+  const enlaceActivacion = `https://ganao.app/authentication/signup?token=${token}`;
+
+
+
+
+  const mensajeCorreo: SendEmailDto = {
+    sender: '"No reply"<no-reply@ganao.app>',
+    recipients: 'jfernandezberrutti@gmail.com,cocina.anton@gmail.com',
+    subject: 'Activación de cuenta de empresa aprobada',
+    html: `<p>Hola,</p><p>Tu empresa ha sido aprobada. Haz clic en el siguiente enlace para registrar tu usuario:</p><p><a href="${enlaceActivacion}">${enlaceActivacion}</a></p>`,
+    text: ''
+  };
+
+  await this.sendEmail(mensajeCorreo);
+  
+}
+
+
+
+
+
+
+
+
   async signup(dto: AuthDto) {
 
 
     
     // generate the password hash
+    console.log(dto)
     const hash = await argon.hash(dto.hash);
     // save the new user in the db
     try {
@@ -637,6 +898,9 @@ async verificoTokenUsuario(token){
 }
 
 
+
 }
+
+
 
 

@@ -1,5 +1,5 @@
 import { HttpAdapterHost, NestFactory, Reflector } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { PrismaClientExceptionFilter } from './prisma-client-exception.filter';
 import * as session from 'express-session'
@@ -35,6 +35,8 @@ async function bootstrap() {
   app.use(passport.session());
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
-  await app.listen(3333);
+  await app.listen(3334);
+  const logger = new Logger('bootstrap');
+  logger.log(`Listening on ${await app.getUrl()}`);
 }
 bootstrap();

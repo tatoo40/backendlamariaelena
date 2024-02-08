@@ -48,7 +48,7 @@ import { Prisma } from '@prisma/client';
       //console.log(id);
       //console.log(field);
 
-      return this.prisma[this.model].findFirst({
+      return this.prisma[this.model].findMany({
         where: {    
    
           [this.field]:id,          
@@ -90,7 +90,7 @@ import { Prisma } from '@prisma/client';
           this.model=tabla;
      
           delete dto['id']
-    
+          console.log(tabla)
           console.log(dto)
           const general =
             await this.prisma[this.model].create({

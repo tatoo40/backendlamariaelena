@@ -20,11 +20,15 @@ import { RelacionoSnigModule } from './relacionosnig/relacionosnig.module';
 import { CambiarCategoriaModule } from './cambiocategoria/cambiocategoria.module';
 import { GeneralEmpresaModule } from './generalempresa/generalempresa.module';
 import { AccionxIndModule } from './accionxind/accionxind.module';
+import { NotificacionesModule } from './notificaciones/notificaciones.module';
+
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    
     AuthModule,
     UserModule,
     PrismaModule,
@@ -39,6 +43,7 @@ import { AccionxIndModule } from './accionxind/accionxind.module';
     AccionxIndModule,
     UtilesModule,
     RelacionoSnigModule,
+    NotificacionesModule,
     GanadooModule,
     CambiarCategoriaModule,
     PassportModule.register({session:true})

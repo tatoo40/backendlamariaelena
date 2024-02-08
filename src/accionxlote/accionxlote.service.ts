@@ -305,8 +305,10 @@ export class AccionxloteService {
 
         break;
         case 'compraganadomasiva':
-          //Obtengo el nro de transaccion
 
+
+          //Obtengo el nro de transaccion
+            console.log('dasdasd');
           cabezal =
             await this.prisma.cpt_movimiento_stock.create(
               {
@@ -332,11 +334,6 @@ export class AccionxloteService {
                   bania_garrapata:
                     dto.bania_garrapata,
                   nro_lote:
-                    'LOT-' +
-                    fechaLote +
-                    '-' +
-                    nro_trans +
-                    '-' +
                     dto.anexo_lote,
                 },
               },
@@ -733,12 +730,23 @@ export class AccionxloteService {
             i < dtoLineas.length;
             ++i
           ) {
-            var pesoPromedioUnidad =
-              (dtoLineas[i].peso *
-                dto.peso_total_facturado) /
-              dto.peso_total_real;
-            var pesoPromedioUnidadFormateado =
-              pesoPromedioUnidad.toFixed(2);
+
+            //console.log(dto)
+            //console.log(dtoLineas)
+            var pesoIndividuo:number=0;
+
+            if (isNaN(dtoLineas[i].peso) || dtoLineas[i].peso === 0) {
+                // Calcular pesoPromedioUnidad utilizando dto.peso_total_facturado / dto.cantidad
+                pesoIndividuo = parseFloat(dto.peso_total_facturado) / dto.cantidad_total;
+                var pesoPromedioUnidad = pesoIndividuo;
+            } else {
+                // Calcular pesoPromedioUnidad utilizando (dtoLineas[i].peso * dto.peso_total_facturado) / dto.peso_total_real
+                pesoIndividuo=parseFloat(dtoLineas[i].peso);
+                var pesoPromedioUnidad = (dtoLineas[i].peso * dto.peso_total_facturado) / dto.peso_total_real;
+            }
+          
+            var cantidad2 = pesoIndividuo.toFixed(2);
+            var pesoPromedioUnidadFormateado = pesoPromedioUnidad.toFixed(2);
 
 
            
@@ -749,19 +757,13 @@ export class AccionxloteService {
                   data: {
                     nro_trans: nro_trans,
                     cantidad: dto.cantidad,
-                    cantidad2: dtoLineas[i].peso,
+                    cantidad2:cantidad2,
                     cantidad3:
                       pesoPromedioUnidadFormateado,
                     fecha: formattedDate,
-                    nro_lote:
-                      'LOT-' +
-                      fechaLote +
-                      '-' +
-                      nro_trans +
-                      '-' +
-                      dto.anexo_lote,
+                    nro_lote:dto.anexo_lote,
                     cod_identidad:
-                      dtoLineas[i].caravana,
+                      dtoLineas[i].EID,
                     id_empresa: dto.id_empresa,
                     cod_articulo:
                       dto.cod_articulo,
@@ -775,18 +777,12 @@ export class AccionxloteService {
                   data: {
                     nro_trans: nro_trans,
                     cantidad: dto.cantidad,
-                    cantidad2: dtoLineas[i].peso,
+                    cantidad2:cantidad2,
                     cantidad3: pesoPromedioUnidad,
                     signo: 1,
-                    nro_lote:
-                      'LOT-' +
-                      fechaLote +
-                      '-' +
-                      nro_trans +
-                      '-' +
-                      dto.anexo_lote,
+                    nro_lote: dto.anexo_lote,
                     cod_identidad:
-                      dtoLineas[i].caravana,
+                      dtoLineas[i].EID,
                     fecha: formattedDate,
                     id_motivo_stk:
                       dto.id_motivo_mov_stk,
@@ -801,41 +797,47 @@ export class AccionxloteService {
                 },
               );
 
+           // console.log(dto)
+
+            //console.log(dtoLineas)
+
+       
 
 
-            await this.prisma.cpt_identidad.create({
-              data: {
 
-                nro_lote:
-                'LOT-' +
-                fechaLote +
-                '-' +
-                nro_trans +
-                '-' +
-                dto.anexo_lote,
-                cod_identidad: dtoLineas[i].caravana,                 
-                cod_articulo:dtoLineas[i].cod_articulo,  
-                dias:dto.dias,
-                meses:dto.dias/30,
-                propietario:dto.dicose,
-                ubicacion:dto.dicose,
-                tenedor:dto.dicose,
-                status_vida:'Vivo',
-                status_trazabilidad:'Trazado',
-                errores:'No',
-                sexo:obtengoSexoAnimales.sexo,
-                cruza:'',
-                id_empresa:dto.id_empresa,
-                fecha_ingreso:formattedDate,
-                documento_ingreso:dto.serie_guia+'-'+dto.nro_guia,
-                fecha_identificacion:formattedDate,    
-                peso_inicial:dtoLineas[i].peso,                  
-                fecha_entrada:formattedDate, 
-                id_categoria_ganado:dto.id_categoria_ganado,
-                id_marca_ganado:dto.id_raza_ganado    
-
+              await this.prisma.cpt_identidad.create({
+                data: {
   
-              }}); 
+                  nro_lote:
+                  dto.anexo_lote,
+                  cod_identidad: dtoLineas[i].EID,                 
+                  cod_articulo:dto.cod_articulo,  
+                  dias:0,
+                  meses:0,
+                  propietario:dto.dicose.toString(),
+                  ubicacion:dto.dicose.toString(),
+                  tenedor:dto.dicose.toString(),
+                  status_vida:'Vivo',
+                  status_trazabilidad:'Trazado',
+                  errores:'No',
+                  sexo:obtengoSexoAnimales.sexo,
+                  cruza:'',
+                  //id_empresa:dto.id_empresa,
+                  fecha_ingreso:formattedDate,
+                  documento_ingreso:dto.serie_guia+'-'+dto.nro_guia,
+                  fecha_identificacion:formattedDate,    
+                  peso_inicial:cantidad2,                  
+                  fecha_entrada:formattedDate, 
+                  nro_trans:nro_trans,
+                  id_empresa:dto.id_empresa,
+                  id_categoria_ganado:parseInt(dto.id_categoria_ganado,10),
+                  id_marca_ganado:parseInt(dto.id_raza_ganado,10)
+                  //id_categoria_ganado:dto.id_categoria_ganado,
+                  //id_marca_ganado:parseInt(dto.id_raza_ganado,10), 
+  
+    
+                }}); 
+
 
 
 
@@ -847,20 +849,13 @@ export class AccionxloteService {
                     data: {
                       nro_trans: nro_trans,
                       cantidad: dto.cantidad,
-                      cantidad2:
-                        dtoLineas[i].peso,
+                      cantidad2:cantidad2,
                       cantidad3:
                         pesoPromedioUnidad,
                       fecha: formattedDate,
-                      nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
-                        dto.anexo_lote,
-                      cod_identidad:
-                        dtoLineas[i].caravana,
+                      nro_lote:dto.anexo_lote,
+                      cod_identidad: 
+                        dtoLineas[i].EID,
                       id_empresa: dto.id_empresa,
                       cod_articulo:
                         dto.cod_articulo,
@@ -876,21 +871,14 @@ export class AccionxloteService {
                     data: {
                       nro_trans: nro_trans,
                       cantidad: dto.cantidad,
-                      cantidad2:
-                        dtoLineas[i].peso,
+                      cantidad2:cantidad2,
                       cantidad3:
                         pesoPromedioUnidad,
                       fecha: formattedDate,
                       signo:1,
-                      nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
-                        dto.anexo_lote,
+                      nro_lote: dto.anexo_lote,
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       id_empresa: dto.id_empresa,
                       cod_articulo:
                         dto.cod_articulo,
@@ -917,15 +905,10 @@ export class AccionxloteService {
                         tc:insumo.tc,
                         signo:1,
                         nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
                         dto.anexo_lote,
-                        cod_identidad:dtoLineas[i].caravana,
+                        cod_identidad:dtoLineas[i].EID,
                         fecha:formattedDate,
-                        nro_trans_ref:dto.nro_trans_ref,
+                        nro_trans_ref:nro_trans,
                         id_empresa: dto.id_empresa,
                         cod_articulo:dto.cod_articulo,
                         id_unidad_stk:1,
@@ -946,20 +929,14 @@ export class AccionxloteService {
                     data: {
                       nro_trans: nro_trans,
                       cantidad: dto.cantidad,
-                      cantidad2:
-                        dtoLineas[i].peso,
+                      cantidad2:cantidad2,
                       cantidad3:
                         pesoPromedioUnidad,
                       fecha: formattedDate,
                       nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
                         dto.anexo_lote,
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       id_empresa: dto.id_empresa,
                       cod_articulo:
                         dto.cod_articulo,
@@ -975,21 +952,15 @@ export class AccionxloteService {
                     data: {
                       nro_trans: nro_trans,
                       cantidad: dto.cantidad,
-                      cantidad2:
-                        dtoLineas[i].peso,
+                      cantidad2:cantidad2,
                       cantidad3:
                         pesoPromedioUnidad,
                       fecha: formattedDate,
                       signo:1,
                       nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
                         dto.anexo_lote,
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       id_empresa: dto.id_empresa,
                       cod_articulo:
                         dto.cod_articulo,
@@ -1013,16 +984,10 @@ export class AccionxloteService {
                     importe_tr:(insumo.precio_unitario_tr/insumo.cantidad_compra)  * insumo.dosis,
                     tc:insumo.tc,
                     signo:1,
-                    nro_lote:
-                    'LOT-' +
-                    fechaLote +
-                    '-' +
-                    nro_trans +
-                    '-' +
-                    dto.anexo_lote,
-                    cod_identidad:dtoLineas[i].caravana,
+                    nro_lote:dto.anexo_lote,
+                    cod_identidad:dtoLineas[i].EID,
                     fecha:formattedDate,
-                    nro_trans_ref:dto.nro_trans_ref,
+                    nro_trans_ref:nro_trans,
                     id_empresa: dto.id_empresa,
                     cod_articulo:dto.cod_articulo,
                     id_unidad_stk:1,
@@ -1045,20 +1010,13 @@ export class AccionxloteService {
                     data: {
                       nro_trans: nro_trans,
                       cantidad: dto.cantidad,
-                      cantidad2:
-                        dtoLineas[i].peso,
+                      cantidad2:cantidad2,
                       cantidad3:
                         pesoPromedioUnidad,
                       fecha: formattedDate,
-                      nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
-                        dto.anexo_lote,
+                      nro_lote:dto.anexo_lote,
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       id_empresa: dto.id_empresa,
                       cod_articulo:
                         dto.cod_articulo,
@@ -1074,21 +1032,14 @@ export class AccionxloteService {
                     data: {
                       nro_trans: nro_trans,
                       cantidad: dto.cantidad,
-                      cantidad2:
-                        dtoLineas[i].peso,
+                      cantidad2:cantidad2,
                       cantidad3:
                         pesoPromedioUnidad,
                       fecha: formattedDate,
                       signo:1,
-                      nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
-                        dto.anexo_lote,
+                      nro_lote:dto.anexo_lote,
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       id_empresa: dto.id_empresa,
                       cod_articulo:
                         dto.cod_articulo,
@@ -1112,16 +1063,10 @@ export class AccionxloteService {
                     importe_tr:(insumo.precio_unitario_tr/insumo.cantidad_compra)  * insumo.dosis,
                     tc:insumo.tc,
                     signo:1,
-                    nro_lote:
-                    'LOT-' +
-                    fechaLote +
-                    '-' +
-                    nro_trans +
-                    '-' +
-                    dto.anexo_lote,
-                    cod_identidad:dtoLineas[i].caravana,
+                    nro_lote:dto.anexo_lote,
+                    cod_identidad:dtoLineas[i].EID,
                     fecha:formattedDate,
-                    nro_trans_ref:dto.nro_trans_ref,
+                    nro_trans_ref:nro_trans,
                     id_empresa: dto.id_empresa,
                     cod_articulo:dto.cod_articulo,
                     id_unidad_stk:1,
@@ -1142,20 +1087,13 @@ export class AccionxloteService {
                     data: {
                       nro_trans: nro_trans,
                       cantidad: dto.cantidad,
-                      cantidad2:
-                        dtoLineas[i].peso,
+                      cantidad2:cantidad2,
                       cantidad3:
                         pesoPromedioUnidad,
                       fecha: formattedDate,
-                      nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
-                        dto.anexo_lote,
+                      nro_lote: dto.anexo_lote,
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       id_empresa: dto.id_empresa,
                       cod_articulo:
                         dto.cod_articulo,
@@ -1171,21 +1109,14 @@ export class AccionxloteService {
                     data: {
                       nro_trans: nro_trans,
                       cantidad: dto.cantidad,
-                      cantidad2:
-                        dtoLineas[i].peso,
+                      cantidad2:cantidad2,
                       cantidad3:
                         pesoPromedioUnidad,
                       fecha: formattedDate,
                       signo:1,
-                      nro_lote:
-                        'LOT-' +
-                        fechaLote +
-                        '-' +
-                        nro_trans +
-                        '-' +
-                        dto.anexo_lote,
+                      nro_lote:dto.anexo_lote,
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       id_empresa: dto.id_empresa,
                       cod_articulo:
                         dto.cod_articulo,
@@ -1210,16 +1141,10 @@ export class AccionxloteService {
                     importe_tr:(insumo.precio_unitario_tr/insumo.cantidad_compra)  * insumo.dosis,
                     tc:insumo.tc,
                     signo:1,
-                    nro_lote:
-                    'LOT-' +
-                    fechaLote +
-                    '-' +
-                    nro_trans +
-                    '-' +
-                    dto.anexo_lote,
-                    cod_identidad:dtoLineas[i].caravana,
+                    nro_lote:dto.anexo_lote,
+                    cod_identidad:dtoLineas[i].EID,
                     fecha:formattedDate,
-                    nro_trans_ref:dto.nro_trans_ref,
+                    nro_trans_ref:nro_trans,
                     id_empresa: dto.id_empresa,
                     cod_articulo:dto.cod_articulo,
                     id_unidad_stk:1,
@@ -1236,10 +1161,7 @@ export class AccionxloteService {
 
           }
 
-          //cpf_log
-          //console.log(idRegistro);
-          //console.log(formattedDate);
-          //console.log(nro_trans)
+   
           cpf_log =
             await this.prisma.cpf_log.create({
               data: {
@@ -1267,16 +1189,15 @@ export class AccionxloteService {
             return {
             error_proceso:false,
             nro_trans: nro_trans,
-            nro_lote:
-              'LOT-' +
-              fechaLote +
-              '-' +
-              nro_trans +
-              '-' +
-              dto.anexo_lote,
+            nro_lote:dto.anexo_lote,
               message: 'Carga realizada con exito',
           };
           break;
+
+
+
+
+
 
         case 'ajumenganadomasiva':
           cabezal =
@@ -2923,7 +2844,7 @@ async function rollback(proceso:string,nroTrans:number) {
   switch (proceso){
     case 'compraganadomasiva':
      
-
+        
       await this.prisma.cpt_movimiento_stock.deleteMany({
         where: {
           nro_trans: nroTrans,

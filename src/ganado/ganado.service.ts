@@ -166,7 +166,7 @@ export class GanadoService {
          EXTRACT(YEAR FROM CURRENT_DATE) AS anio_actual,
          EXTRACT(WEEK FROM CURRENT_DATE) AS semana_actual
     FROM public.cpt_movimiento_stock t, articulos art 
-    where t.id_motivo_stk=3 AND t.cod_articulo = art.cod_articulo
+    where t.id_motivo_stk=1 AND t.cod_articulo = art.cod_articulo
     AND EXTRACT(YEAR FROM t.fecha)=EXTRACT(YEAR FROM CURRENT_DATE)
     AND EXTRACT(WEEK FROM t.fecha::DATE)=EXTRACT(WEEK FROM CURRENT_DATE)
       AND t.id_empresa=${empresa}

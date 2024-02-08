@@ -22,6 +22,8 @@ export class AccionMasivaLoteCabezal {
   cod_articulo:string
   id_tipo_peso:number
   id_motivo_stk: number
+  id_empresa:number
+  
 
 
  

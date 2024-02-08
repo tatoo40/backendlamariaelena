@@ -53,6 +53,7 @@ import { Public } from 'src/auth/decorator';
       @Param('field') field:string
 
     ) {
+      //console.log('aca')
       return this.generalService.getGeneralByIdField(
             
             id,

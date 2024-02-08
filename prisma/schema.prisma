@@ -25,6 +25,7 @@ model Usuario {
   isAdmin                 Boolean               @default(false)
   token_recuperacion_pass String?
   id_rol                  Int
+  id_idioma               Int?               
   roles                   Rol                   @relation(fields: [id_rol], references: [id])
   usuarios                usuarios_x_empresas[]
   permisos_x_usuario_seccion Permisos_x_usuario_seccion[]
@@ -96,6 +97,21 @@ model Tipo_costeo {
   @@map("tipos_costeo")
 }
 
+
+model Idioma {
+  id          Int          @id @default(autoincrement())
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  id_mod      Int          @default(0)
+  estado      String       @default("S")
+  descripcion String
+  prefijo String
+
+
+  @@map("idiomas")
+}
+
+
 model Tipo_titular {
   id          Int       @id @default(autoincrement())
   createdAt   DateTime  @default(now())
@@ -121,6 +137,9 @@ model Empresa {
   email_contacto       String
   telefono_contacto    String
   observaciones        String
+  aprobada             Boolean?
+  token                String?
+  activa               Boolean?
   articulos            Articulo[]
   cpf_costos           Cpf_costos[]
   cpf_stockaux         Cpf_stockaux[]
@@ -128,12 +147,12 @@ model Empresa {
   empresas             usuarios_x_empresas[]
   cpt_registros_sanitarios Cpt_registro_sanitario[]
   cpp_registros_sanitarios Cpp_registro_sanitario[]
-    cpf_regsitros_sanitario Cpf_registro_sanitario[]
+  cpf_regsitros_sanitario Cpf_registro_sanitario[]
   titulares Titular[]
-    cpf_consumos Cpf_consumos[]
-    cpt_identidad Cpt_identidad[]
-    cpt_altaganado Cpt_altaganado[]
-    cpt_parametros_x_empresa Cpt_parametros_x_empresa[]
+  cpf_consumos Cpf_consumos[]
+  cpt_identidad Cpt_identidad[]
+  cpt_altaganado Cpt_altaganado[]
+  cpt_parametros_x_empresa Cpt_parametros_x_empresa[]
 
   @@map("empresas")
 }
@@ -650,7 +669,7 @@ model Cpt_registros_gasto{
 model Articulos_x_titular{
 
   id                   Int                    @id @default(autoincrement())
-  cod_articulo         String                 @unique
+  cod_articulo         String                 
   createdAt            DateTime               @default(now())
   updatedAt            DateTime               @updatedAt
   estado               String                 @default("S")
@@ -887,7 +906,7 @@ model Cpt_identidad {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   estado          String    @default("S")
-  cod_articulo    String
+  cod_articulo    String?
   nro_lote        String
   cod_identidad   String
   dias            Int
@@ -899,7 +918,7 @@ model Cpt_identidad {
   errores         String
   sexo            String
   cruza           String
-  id_empresa      Int
+  id_empresa      Int?
   fecha_ingreso   DateTime?
   documento_ingreso String?
   fecha_identificacion DateTime?
@@ -908,15 +927,15 @@ model Cpt_identidad {
   peso_inicial    Decimal?
   fecha_entrada   DateTime?
   Fecha_salida    DateTime?
-  id_categoria_ganado  Int
-  id_marca_ganado      Int
+  id_categoria_ganado  Int?
+  id_marca_ganado      Int?
   nro_trans Int?
   cod_identidad_madre   String?
 
-  empresas      Empresa   @relation(fields: [id_empresa], references: [id])
-  articulos       Articulo    @relation(fields: [cod_articulo], references: [cod_articulo])
-  categorias_ganado    Categoria_ganado       @relation(fields: [id_categoria_ganado], references: [id])
-  marcas_ganado        Marca_ganado           @relation(fields: [id_marca_ganado], references: [id])
+  empresas      Empresa?   @relation(fields: [id_empresa], references: [id])
+  articulos       Articulo?    @relation(fields: [cod_articulo], references: [cod_articulo])
+  categorias_ganado    Categoria_ganado?       @relation(fields: [id_categoria_ganado], references: [id])
+  marcas_ganado        Marca_ganado?           @relation(fields: [id_marca_ganado], references: [id])
 
   @@map("cpt_identidad")
 
@@ -1194,6 +1213,14 @@ model cpt_parametros_x_fecha{
   estado        String    @default("S")
   fecha         DateTime
   precio_vaca_cuarta_balanza Decimal
+  precio_vaca_invernada_pie Decimal?
+  precio_vaca_invernada_cuarta_balanza Decimal?
+  precio_ternero_exportacion_pie Decimal?
+  precio_ternera_exportacion_pie Decimal?
+  precio_vaquillona_cuarta_balanza Decimal
+  precio_vaquillona_pie Decimal?  
+  precio_novillo_cuarta_balanza Decimal
+  precio_novillo_pie Decimal?   
   tc            Decimal
 
 
@@ -1209,7 +1236,6 @@ model Cpt_parametros_x_empresa{
   locacion_accuweather String
   api_accuweather            String
   id_empresa           Int              @default(1)
-
   empresas             Empresa @relation(fields: [id_empresa], references: [id])
   
   @@map("cpt_parametros_x_empresa")

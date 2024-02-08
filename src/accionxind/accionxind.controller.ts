@@ -77,7 +77,7 @@ import { UtilesService } from 'src/utiles/utiles.service';
     {
 
       let estado;
-console.log(dto)
+//console.log(dto)
       switch (dto.id_motivos_stk){
 
         //ES UNA AJUSTE EN ALTA

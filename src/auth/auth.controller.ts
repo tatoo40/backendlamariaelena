@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   UseGuards
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { RtGuard } from './guard';
 import { Public,GetCurrentUserId,GetCurrentUser } from './decorator';
 import { RecoverDto } from './dto/recover.dto';
 import { NewPassDto } from './dto/newPass.dto';
+import { CompanyDto } from './dto/company.dto';
 
 
 @Controller('auth')
@@ -29,7 +31,22 @@ export class AuthController {
     return this.authService.signup(dto);
   }
 
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @Post('companysignup')
+  companySignup(@Body() dto: CompanyDto) {
+    return this.authService.companySignup(dto);
+  }
 
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Post('aprobarempresa')
+  async aprobarEmpresa(@Body() dto): Promise<string> {
+    //\console.log(dto)
+   
+    const mensajeExito = await this.authService.aprobarEmpresa(dto.id_empresa);
+    return mensajeExito;
+  }
 
 
   @Public()
@@ -38,6 +55,14 @@ export class AuthController {
   signin(@Body() dto: AuthDto) {
     //\console.log(dto)
     return this.authService.signin(dto);
+  }
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Get('apruebotokenempresa/:token')
+  aprueboTokenEmpresa( @Param('token') token: string) {
+   
+    //\console.log(dto)
+    return this.authService.aprueboTokenEmpresa(token);
   }
   
 
