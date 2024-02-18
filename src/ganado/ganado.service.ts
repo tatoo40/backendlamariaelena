@@ -190,7 +190,7 @@ export class GanadoService {
          EXTRACT(YEAR FROM CURRENT_DATE) AS anio_actual,
          EXTRACT(WEEK FROM CURRENT_DATE) AS semana_actual
     FROM public.cpt_movimiento_stock t, articulos art 
-    where t.id_motivo_stk=3 AND t.cod_articulo = art.cod_articulo
+    where t.id_motivo_stk=2 AND t.cod_articulo = art.cod_articulo
     AND EXTRACT(YEAR FROM t.fecha)=EXTRACT(YEAR FROM CURRENT_DATE)
     AND EXTRACT(WEEK FROM t.fecha::DATE)=EXTRACT(WEEK FROM CURRENT_DATE)
     AND t.id_empresa=${empresa}
@@ -210,7 +210,7 @@ export class GanadoService {
   
     //obtento todas las carvanas con sus distintos depositos
     const obtengoCaravanasSector: { id_sector: number; nombre: string; cod_identidad: string }[]  = await this.prisma.$queryRaw<[]>`SELECT DISTINCT f.id_sector, dep.nombre, f.cod_identidad FROM cpf_stockaux f, sectores dep where f.id_estado_stock IN(1)  
-    AND f.id_empresa ==${empresa}
+    AND f.id_empresa=${empresa}
     AND dep.id_empresa=f.id_empresa
     AND f.id_empresa=${empresa}
     AND dep.id = f.id_sector
@@ -258,7 +258,7 @@ export class GanadoService {
     return  this.prisma.$transaction([
       this.prisma.$queryRaw`SELECT s.cod_articulo, s.nro_lote, s.id_empresa, s.cod_identidad, sum(s.cantidad*s.signo) cantidad, sum(s.cantidad2*s.signo) cantidad2, sum(s.cantidad3*s.signo) cantidad3,s.id_motivo_stk, s.id_unidad_stk,s.id_estado_stock,s.id_sector,
 a.id_categoria_ganado, a.id_marca_ganado
-FROM cpf_stockaux s, articulos a where s.id_estado_stock IN(1) AND cod_identidad = '${ ganadoId }'
+FROM cpf_stockaux s, articulos a where s.id_estado_stock IN(1) AND cod_identidad = ${ganadoId}
 AND s.cod_articulo=a.cod_articulo
 GROUP BY a.id_categoria_ganado, a.id_marca_ganado, s.cod_articulo, s.nro_lote, s.cod_identidad , s.id_empresa,s.id_unidad_stk,s.id_estado_stock,s.id_sector,s.id_motivo_stk HAVING sum(s.cantidad*s.signo)>0`,
    
@@ -408,8 +408,8 @@ async ctrlAnimalLoteYaProcesado(lineas) {
   // Obtengo todos los artículos que están ingresados.
   let arrayIdentidades = await this.getGanadoIdentidad();
  
-  console.log('aca adentro')
-  console.log(arrayIdentidades)
+  //console.log('aca adentro')
+  //console.log(arrayIdentidades)
   //console.log(arrayIdentidades);
 
   lineas.forEach((linea) => {
@@ -454,6 +454,353 @@ async ctrlAnimalLoteYaProcesadoInd(caravana) {
   return ctrlPaso; // Devuelvo el valor de 'existe' al finalizar la comparación
 }
 
+
+async registroSanitarioXLotes(idRegistroSanitario,fechaInsert,dto,cantidad2, cantidad3, proceso, nro_trans){
+
+  let pasaProceso = true;
+
+  
+  let cabezalSanitario: any;
+  let error_proceso = false;
+  let error_mensaje = '';
+  let lineas: any;
+
+
+
+  var animalAProcesarString: any =
+  await this.getGanadoById(
+    dto.EID,
+  );
+
+  var animalAProcesar = animalAProcesarString[0][0];
+
+  //console.log(animalAProcesar)
+  //console.log(dto)
+  //console.log(nro_trans)
+  //console.log(cantidad2)
+  //console.log(cantidad3)
+
+
+  if (dto.peso !== undefined && dto.peso !== 'null' && dto.peso !== null && dto.peso !== '' && dto.peso !== 0) {
+      cantidad2 = dto.peso;
+  } else if (cantidad2 !== undefined && cantidad2 !== 'null' && dto.peso !== null && cantidad2 !== '') {
+      cantidad2 = cantidad2;
+  } else {
+      cantidad2 = 0;
+  }
+
+  if (dto.peso !== undefined && dto.peso !== 'null' && dto.peso !== null && dto.peso !== '' && dto.peso !== 0) {
+    cantidad3 = dto.peso;
+  } else if (cantidad3 !== undefined && cantidad3 !== 'null' && dto.peso !== null && cantidad3 !== '') {
+    cantidad3 = cantidad3;
+  } else {
+    cantidad3 = 0;
+  }
+
+              //si viene con peso le pongo el mismo peso porque ese es el real para el animal
+              lineas =
+                await this.prisma.cpp_movimiento_stock.create(
+                  {
+                    data: {
+                      nro_trans: nro_trans,
+                      cantidad: 1,
+                      cantidad2: cantidad2,
+                      cantidad3: cantidad3,
+                      fecha: fechaInsert,
+                      nro_lote:animalAProcesar.nro_lote,
+                      cod_identidad: dto.EID,
+                      id_empresa: animalAProcesar.id_empresa,
+                      cod_articulo:animalAProcesar.cod_articulo,
+                    },
+                  },
+                );
+                
+
+
+
+
+                const lineasSanitarias =
+                await this.prisma.cpp_registro_sanitario.create(
+                  {
+                    data: {
+                      nro_trans: nro_trans,
+                      cantidad: 1,
+                      cantidad2: cantidad2,
+                      cantidad3: cantidad3,
+                      fecha: fechaInsert,
+                      nro_lote:animalAProcesar.nro_lote,
+                      cod_identidad: dto.EID,
+                      id_empresa: animalAProcesar.id_empresa,
+                      cod_articulo:animalAProcesar.cod_articulo,
+                      id_padre:idRegistroSanitario,
+                      id_motivo_sanitario:proceso
+                    },
+                  },
+                );
+        
+                await this.prisma.cpf_registro_sanitario.create(
+                  {
+                    data: {
+                      nro_trans: nro_trans,
+                      cantidad: 1,
+                      cantidad2: cantidad2,
+                      cantidad3: cantidad3,
+                      fecha: fechaInsert,
+                      signo:1,
+                      nro_lote:animalAProcesar.nro_lote,
+                      cod_identidad: dto.EID,
+                      id_empresa: animalAProcesar.id_empresa,
+                      cod_articulo:animalAProcesar.cod_articulo,
+                      id_padre:idRegistroSanitario,
+                      id_motivo_sanitario:proceso
+                    },
+                  },
+                );
+          
+           
+
+
+
+
+
+
+
+              switch (proceso) {
+                case 6:
+
+                      //TENGO QUE CAMBIAR LA CATEGORIA DEL ARTTICULO
+                      // SI EL RESULTADO DEL TEST ES POSITIVO
+                      // Y PASAR LOS COSTOS
+
+                      //obtengo de cada animal los datos para dar de baja
+   
+                        let lineasCpfStockaux =
+                        await this.prisma.cpf_stockaux.create(
+                          {
+                            data: {
+                              nro_trans: nro_trans,
+                              cantidad:
+                                animalAProcesar.cantidad,
+                              cantidad2:
+                                animalAProcesar.cantidad2,
+                              cantidad3:
+                                animalAProcesar.cantidad3,
+                              signo: -1,
+                              nro_lote:
+                                animalAProcesar.nro_lote,
+                              cod_identidad:dto.EID,
+                              fecha: fechaInsert,
+                              id_motivo_stk:12,
+                              cod_articulo:
+                                animalAProcesar.cod_articulo,
+                              id_unidad_stk:
+                                animalAProcesar.id_unidad_stk,
+                              id_empresa:
+                                animalAProcesar.id_empresa,
+                              id_estado_stock:
+                                animalAProcesar.id_estado_stock,
+                                id_sector:
+                                animalAProcesar.id_sector,
+                            },
+                          },
+                        );
+              
+                      let categoriaResultado ='';
+
+                      if  (dto.reusltado){
+                        // es porque es positivo y tengo que cambiar el articulo 
+                        categoriaResultado = '4';
+
+                      }else{
+
+                        categoriaResultado = '8';
+
+                      }
+                      const articuloNuevo = await this.obtengoArticulo(animalAProcesar.id_marca_ganado, categoriaResultado)
+
+                      
+                      lineasCpfStockaux =
+                        await this.prisma.cpf_stockaux.create(
+                          {
+                            data: {
+                              nro_trans: nro_trans,
+                              cantidad:
+                                animalAProcesar.cantidad,
+                              cantidad2:
+                                animalAProcesar.cantidad2,
+                              cantidad3:
+                                animalAProcesar.cantidad3,
+                              signo: 1,
+                              nro_lote:
+                                dto.nro_lote,
+                              cod_identidad:dto.cod_identidad,
+                              fecha: fechaInsert,
+                              id_motivo_stk:proceso,
+                              cod_articulo:articuloNuevo.cod_articulo,
+                              id_unidad_stk:
+                                animalAProcesar.id_unidad_stk,
+                              id_empresa:
+                                animalAProcesar.id_empresa,
+                              id_estado_stock:1,
+                                id_sector:animalAProcesar.id_sector
+                            },
+                          },
+                        );
+
+                        
+                      await this.cambioCostos(dto.cod_identidad,articuloNuevo.cod_articulo,dto.cod_identidad, dto.fecha, nro_trans);
+
+
+                
+
+                    return {
+                      error:false,
+                      mensaje:''
+              
+                    }
+
+                break;
+                default:
+                //obtengo articulo del motivo sanitario
+                const insumoPromise = this.obtengoInsumo(proceso, animalAProcesar.id_empresa);
+                // tengo que evaluar la dosificacion por animal
+
+                const insumo: any = await insumoPromise;
+                //console.log("Fetched insumo:", insumo);
+                //insumo = insumo[0];
+                //console.log(insumo.cod_articulo);
+                //primer problema si no encuentro insumos en la base
+                if (insumo.cod_articulo !=='') {
+                  //agrego en cpf_consumos
+
+
+                  let cantidadConsumida = 0
+                  if(proceso===1){
+
+                     cantidadConsumida = Math.ceil(cantidad2* insumo.dosis);
+
+                  }else{
+
+                     cantidadConsumida = 1 * insumo.dosis;
+                  }
+                  
+                  //console.log('aca')
+                  //console.log(cantidadConsumida);
+                  
+
+                  //segundo problema si trato de consumir mas del disponible
+                  if (cantidadConsumida>insumo.cantidad_stk){
+                    // tengo que cortar porque no hay stock del insumo
+                    error_proceso = true;
+                    error_mensaje += 'Esta queriendo consumir mas cantidad del articulo '+insumo.nombre+' que la que existe en stock:'+insumo.cantidad_stk+' '+insumo.descripcion_corta+'<br>';
+
+                    return {
+                      error:true,
+                      mensaje:error_mensaje
+              
+                    }
+                
+                  }
+
+
+
+
+
+
+
+                  //const insumo:any = await this.obtengoInsumo(2, dto.id_empresa);
+                  //le asigno el valor al bicho por este remedio
+                
+                  await this.prisma.cpf_costos.create({
+                    data: {
+
+                  
+                      nro_trans:nro_trans,
+                      importe_mo:Math.ceil((parseFloat(cantidad2) * insumo.dosis)) * (insumo.precio_unitario_mo/insumo.cantidad_compra), 
+                      importe_mn:Math.ceil((parseFloat(cantidad2) * insumo.dosis)) * (insumo.precio_unitario_mn/insumo.cantidad_compra),
+                      importe_tr:Math.ceil((parseFloat(cantidad2) * insumo.dosis)) * (insumo.precio_unitario_tr/insumo.cantidad_compra), 
+                      tc:insumo.tc,
+                      signo:1,
+                      nro_lote:animalAProcesar.nro_lote,
+                      cod_identidad:dto.EID,
+                      fecha:fechaInsert,
+                      nro_trans_ref:nro_trans,
+                      id_empresa: animalAProcesar.id_empresa,
+                      cod_articulo:animalAProcesar.cod_articulo,
+                      id_unidad_stk:1,
+                      id_tipo_costo:1
+                      
+
+                    }});
+                  
+
+
+
+                  const cabezalConsumo =
+                  await this.prisma.cpf_consumos.create(
+                    {
+                      data: {
+                        nro_trans: nro_trans,
+                        cantidad:cantidadConsumida,
+                        cantidad2:0,
+                        cantidad3:0,
+                        signo:1,
+                        cod_articulo: insumo.cod_articulo,
+                        fecha: fechaInsert,
+                        id_motivo_stk: proceso,
+                        id_unidad_stk: insumo.id_unidad_stk,
+                        id_empresa: animalAProcesar.id_empresa,
+                        id_sector: 7,
+                        id_estado_stock: 1,
+                      },
+                    },
+                  );
+
+                  //bajo de la cpf_Stockaux el consumo
+                  const cabezalStock =
+                  await this.prisma.cpf_stockaux.create(
+                    {
+                      data: {
+                        nro_trans: nro_trans,
+                        cantidad: cantidadConsumida,
+                        cantidad2: 0,
+                        cantidad3: 0,
+                        signo: -1,
+                        nro_lote:'0',
+                        cod_identidad:'0',
+                        fecha: fechaInsert,
+                        id_motivo_stk: proceso,
+                        cod_articulo:insumo.cod_articulo,
+                        id_unidad_stk:insumo.id_unidad_stk,
+                        id_empresa: animalAProcesar.id_empresa,
+                        id_estado_stock:1,
+                        id_sector: 7,
+                      },
+                    },
+                  );
+
+
+                  return {
+                    error:false,
+                    mensaje:''
+            
+                  }
+
+                }else{
+                  return {
+                    error:true,
+                    mensaje:error_mensaje
+            
+                  }
+                }
+
+
+                break;
+              }
+
+
+
+}
 
 
 async registroSanitario(dto,proceso,nro_trans){
@@ -646,7 +993,7 @@ async registroSanitario(dto,proceso,nro_trans){
       // tengo que evaluar la dosificacion por animal
 
       const insumo: any = await insumoPromise;
-      console.log("Fetched insumo:", insumo);
+      //console.log("Fetched insumo:", insumo);
       //insumo = insumo[0];
       //console.log(insumo.cod_articulo);
       //primer problema si no encuentro insumos en la base
@@ -830,7 +1177,7 @@ async registroSanitario(dto,proceso,nro_trans){
 async obtengoRegistrosSanitarios(caravana:string){
 
 
-  console.log(caravana);
+  //console.log(caravana);
   
     const registros =  await this.prisma.$queryRaw`select  sum(cantidad*signo) cantidad, sum(cantidad2*signo) cantidad2, sum(cantidad3* signo) cantidad3
     , nro_lote, cod_identidad, cod_articulo, id_empresa, id_motivo_sanitario, id_padre
@@ -849,7 +1196,7 @@ async obtengoRegistrosSanitarios(caravana:string){
   async obtengoCostos(caravana:string){
 
 
-    console.log(caravana);
+    //console.log(caravana);
     
       const registros =  await this.prisma.$queryRaw`select  sum(importe_mo*signo) importe_mo, sum(importe_mn*signo) importe_mn, sum(importe_tr* signo) importe_tr 
       , nro_lote, cod_identidad, nro_trans_ref, id_unidad_stk,cod_articulo, id_empresa, id_tipo_costo, tc
@@ -1104,21 +1451,22 @@ var animalAProcesar =
 
 async obtengoInsumo(insumoId:number, empresaId:number){
 
-console.log(insumoId)
-console.log(empresaId);
+//console.log(insumoId)
+//console.log(empresaId);
 
   const insumo =  await this.prisma.$queryRaw`SELECT ms.id, ms.descripcion,  ms.frecuencia,  ms.recurrente,  
   ms.unidad_frecuencia,  ms.dosis,  ms.cod_articulo, art.id_unidad_stk,stock.cantidad_stk, 
-art.nombre, uni.descripcion_corta, ultima_compra.precio_unitario_tr, ultima_compra.precio_unitario_mn, ultima_compra.valor tc,
+art.nombre, uni.descripcion_corta, ultima_compra.precio_unitario_tr, ultima_compra.precio_unitario_mo, ultima_compra.precio_unitario_mn, ultima_compra.valor tc,
 ultima_compra.cantidad_stk cantidad_compra
     FROM public.motivos_sanitarios ms, articulos art, (SELECT cod_articulo, sum(cantidad*signo) cantidad_stk 
                                FROM cpf_stockaux cpf 
                               GROUP BY cod_articulo) stock, unidades uni,
                   (SELECT f.cod_articulo, tc.valor, max(f.fecha) fecha,
   ROUND(CASE when f.id_moneda = 1 then max(f.precio_unitario)/ tc.valor 
-  ELSE MAX(f.precio_unitario) END,2) precio_unitario_tr, 
+  ELSE MAX(f.precio_unitario) END,2)*max(f.cantidad) precio_unitario_tr, 
   ROUND(CASE when f.id_moneda = 1 then max(f.precio_unitario) 
-  ELSE MAX(f.precio_unitario)*tc.valor END,2) precio_unitario_mn,f.cantidad_stk
+  ELSE MAX(f.precio_unitario)*tc.valor END,2)*max(f.cantidad) precio_unitario_mn,
+  ROUND(max(f.precio_unitario),2)*max(f.cantidad) precio_unitario_mo,f.cantidad_stk
                   FROM cpp_fact_prov f, tipo_cambio_diario tc
                   WHERE f.estado='S'
                   AND date(f.fecha) = date(tc.fecha)

@@ -289,3 +289,22 @@ INSERT INTO public.permisos_x_usuario_seccion VALUES (37, '2023-07-26 23:05:19.5
 INSERT INTO public.permisos_x_usuario_seccion VALUES (38, '2023-07-26 23:05:28.083', '2023-07-26 23:05:28.083', 'S', 2, 51, 3, 0);
 INSERT INTO public.permisos_x_usuario_seccion VALUES (39, '2023-07-27 00:12:42.271', '2023-07-27 00:12:42.272', 'S', 2, 52, 4, 0);
 INSERT INTO public.permisos_x_usuario_seccion VALUES (40, '2023-07-27 00:12:53.483', '2023-07-27 00:12:53.483', 'S', 2, 52, 1, 0);
+
+
+
+
+//ELIMINO OPERATIVA
+delete  from cpf_stockaux;
+delete  from cpt_identidad;
+delete from cpf_costos;
+delete from cpf_log;
+delete from cpt_movimiento_stock;
+delete from cpp_movimiento_stock;
+delete from cpt_facturas;
+delete from cpf_consumos;
+delete from cpf_contaux;
+delete from cpf_registro_sanitario;
+delete from cpt_registro_sanitario;
+delete from cpp_fact_prov;
+delete from cpp_facturas;
+delete from cpp_ingresoromaneo;

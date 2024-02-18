@@ -43,7 +43,7 @@ import { GanadoService } from 'src/ganado/ganado.service';
       f.importe_iva_minimo_tr,             
       f.importe_total_mo, f.importe_total_mn, f.importe_total_tr, f.fecha, f.nro_trans_ref, f.serie_fact_prov,
       f.nro_fact_prov,f.id_moneda,f.id_titular,f.id_empresa,f.cod_docum, f.tc,
-      t.razon_social, t.nombre_fantasia ,t.rut, t.direccion, t.telefono_contacto,t.email,f.id_titular
+      t.razon_social, t.nombre_fantasia ,t.rut, t.direccion, t.telefono_contacto,t.email,f.id_titular, m.simbolo as simbolo_moneda
       from cpt_fact_prov f, titulares t, monedas m
       where f.estado = 'S'
       AND f.id_empresa = ${id_empresa}
@@ -1024,10 +1024,7 @@ import { GanadoService } from 'src/ganado/ganado.service';
         throw new ForbiddenException(
           'Access to resources denied',
         );
-        console.log(this.model)
-        //console.log(tabla);
-        //console.log(Id);
-      console.log(objeto)
+  
 
       await this.prisma.cpt_fact_prov.updateMany({
         where: {

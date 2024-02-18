@@ -153,6 +153,8 @@ model Empresa {
   cpt_identidad Cpt_identidad[]
   cpt_altaganado Cpt_altaganado[]
   cpt_parametros_x_empresa Cpt_parametros_x_empresa[]
+  cpt_registros_consumos Cpt_registros_consumos[]
+  cpt_ajustes_stock Cpt_ajustes_stock[]
 
   @@map("empresas")
 }
@@ -505,9 +507,10 @@ model Motivo_sanitario {
   recurrente Boolean?
   dosis Decimal?
   id_empresa           Int?
+  id_tipo_dosis           Int?
   cod_articulo String?
   articulos    Articulo?  @relation(fields: [cod_articulo], references: [cod_articulo])
-
+  tipos_dosis    Tipos_dosis?  @relation(fields: [id_tipo_dosis], references: [id])
 
   cpt_registros_sanitarios Cpt_registro_sanitario[]
   cpp_regsitros_sanitario Cpp_registro_sanitario[]  
@@ -515,7 +518,18 @@ model Motivo_sanitario {
 
   @@map("motivos_sanitarios")
 }
+model Tipos_dosis {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  estado      String   @default("S")
+  descripcion String
 
+  motivos_sanitarios Motivo_sanitario[]
+
+
+  @@map("tipos_dosis")
+}
 model Tipos_mov_stock {
   id                Int                @id @default(autoincrement())
   createdAt         DateTime           @default(now())
@@ -591,7 +605,8 @@ model Articulo {
   cpf_regsitros_sanitario Cpf_registro_sanitario[] 
   cpt_identidad Cpt_identidad[] 
   cpt_altaganado Cpt_altaganado[]
-
+  cpt_registros_consumos Cpt_registros_consumos[]
+  cpt_ajustes_stock Cpt_ajustes_stock[]
 
   @@map("articulos")
 }
@@ -665,6 +680,47 @@ model Cpt_registros_gasto{
 
 }
 
+
+model Cpt_registros_consumos{
+  id                   Int                    @id @default(autoincrement())
+  nro_trans       Int
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  estado               String                 @default("S")
+  observaciones               String
+  fecha DateTime
+  cod_docum String
+  cantidad Int?
+  id_articulo   Int
+  id_empresa      Int       @default(1)
+  articulos       Articulo   @relation(fields: [id_articulo], references: [id])
+  empresa Empresa @relation(fields: [id_empresa], references: [id])
+
+
+  @@map("cpt_registros_consumos")
+
+}
+
+model Cpt_ajustes_stock{
+  id                   Int                    @id @default(autoincrement())
+  nro_trans       Int
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  estado               String                 @default("S")
+  observaciones               String
+  fecha DateTime
+  cod_docum String
+  id_motivo_stk   Int
+  cantidad Int
+  id_articulo   Int
+  id_empresa      Int       @default(1)
+  articulos       Articulo   @relation(fields: [id_articulo], references: [id])
+  empresa Empresa @relation(fields: [id_empresa], references: [id])
+
+
+  @@map("cpt_ajustes_stock")
+
+}
 
 model Articulos_x_titular{
 
@@ -1554,3 +1610,5 @@ model Permisos_x_rol_seccion {
 
   @@map("permisos_x_rol_seccion")
 }
+
+

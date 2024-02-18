@@ -38,7 +38,9 @@ export class AccionxloteService {
   }
 
   getGeneral(tabla: string) {
+    console.log(tabla)
     this.model = tabla;
+   
 
     return this.prisma[this.model].findMany({
       where: {
@@ -60,7 +62,13 @@ export class AccionxloteService {
     let cpf_log: any;
     let error_proceso = false;
     let error_mensaje = '';
-
+    let estado: {
+      error: boolean;
+      mensaje: string;
+    } = {
+      error: false,
+      mensaje: '',
+    };
     let controlPaso;
     //dto=dto.formData;
     dto: AccionMasivaLoteCabezal;
@@ -308,7 +316,9 @@ export class AccionxloteService {
 
 
           //Obtengo el nro de transaccion
-            console.log('dasdasd');
+            console.log('compra de ganado masiva');
+            console.log(dto);
+
           cabezal =
             await this.prisma.cpt_movimiento_stock.create(
               {
@@ -526,6 +536,199 @@ export class AccionxloteService {
      
             idRegistroSanitario = cabezalSanitario.id;
           }
+
+
+
+          if (dto.banio) {
+            cabezalSanitario =
+              await this.prisma.cpt_registro_sanitario.create(
+                {
+                  data: {
+                    nro_trans: nro_trans,
+                    peso_total_real:
+                      dto.peso_total_real,
+                    peso_total_facturado:
+                      dto.peso_total_facturado,
+                    cantidad_ganado:
+                      dto.cantidad_total,
+                    fecha: formattedDate,
+                    en_alta: dto.bania_garrapata,
+                    id_motivo_sanitario: 7,
+                    id_empresa: dto.id_empresa,
+                  },
+                },
+              );
+
+              //obtengo articulo del motivo sanitario
+              const insumo:any = await this.obtengoInsumo(7, dto.id_empresa);
+              // tengo que evaluar la dosificacion por animal
+
+              if(insumo.cod_articulo !==''){
+                //agrego en cpf_consumos
+                const cantidadConsumida = dto.cantidad_total* insumo.dosis;
+
+                if (cantidadConsumida>insumo.cantidad_stk){
+                  // tengo que cortar porque no hay stock del insumo
+                  error_proceso = true;
+                  error_mensaje += 'Esta queriendo consumir mas cantidad del articulo '+insumo.nombre+' que la que existe en stock:'+insumo.cantidad_stk+' '+insumo.descripcion_corta+'<br>';
+                  rollback('compraganadomasiva',nro_trans);
+                  return{
+                    error_proceso:true,
+                    message: error_mensaje,
+                  }
+                }
+                const cabezalConsumo =
+                await this.prisma.cpf_consumos.create(
+                  {
+                    data: {
+                      nro_trans: nro_trans,
+                      cantidad:cantidadConsumida,
+                      cantidad2:0,
+                      cantidad3:0,
+                      signo:1,
+                      cod_articulo: insumo.cod_articulo,
+                      fecha: formattedDate,
+                      id_motivo_stk: dto.id_motivo_mov_stk,
+                      id_unidad_stk: insumo.id_unidad_stk,
+                      id_empresa: dto.id_empresa,
+                      id_sector: 7,
+                      id_estado_stock: 1,
+                    },
+                  },
+                );
+
+                //bajo de la cpf_Stockaux el consumo
+                const cabezalStock =
+                await this.prisma.cpf_stockaux.create(
+                  {
+                    data: {
+                      nro_trans: nro_trans,
+                      cantidad: cantidadConsumida,
+                      cantidad2: 0,
+                      cantidad3: 0,
+                      signo: -1,
+                      nro_lote:'0',
+                      cod_identidad:'0',
+                      fecha: formattedDate,
+                      id_motivo_stk:dto.id_motivo_mov_stk,
+                      cod_articulo:insumo.cod_articulo,
+                      id_unidad_stk:insumo.id_unidad_stk,
+                      id_empresa: dto.id_empresa,
+                      id_estado_stock:1,
+                      id_sector: 7,
+                    },
+                  },
+                );
+
+
+
+              }
+     
+            idRegistroSanitario = cabezalSanitario.id;
+          }
+
+
+
+
+          if (dto.banio_nitromic) {
+            cabezalSanitario =
+              await this.prisma.cpt_registro_sanitario.create(
+                {
+                  data: {
+                    nro_trans: nro_trans,
+                    peso_total_real:
+                      dto.peso_total_real,
+                    peso_total_facturado:
+                      dto.peso_total_facturado,
+                    cantidad_ganado:
+                      dto.cantidad_total,
+                    fecha: formattedDate,
+                    en_alta: dto.bania_garrapata,
+                    id_motivo_sanitario: 8,
+                    id_empresa: dto.id_empresa,
+                  },
+                },
+              );
+
+              //obtengo articulo del motivo sanitario
+              const insumo:any = await this.obtengoInsumo(8, dto.id_empresa);
+              // tengo que evaluar la dosificacion por animal
+
+              if(insumo.cod_articulo !==''){
+                //agrego en cpf_consumos
+                const cantidadConsumida = Math.ceil(dto.peso_total_facturado* insumo.dosis);
+
+                if (cantidadConsumida>insumo.cantidad_stk){
+                  // tengo que cortar porque no hay stock del insumo
+                  error_proceso = true;
+                  error_mensaje += 'Esta queriendo consumir mas cantidad del articulo '+insumo.nombre+' que la que existe en stock:'+insumo.cantidad_stk+' '+insumo.descripcion_corta+'<br>';
+                  rollback('compraganadomasiva',nro_trans);
+                  return{
+                    error_proceso:true,
+                    message: error_mensaje,
+                  }
+                }
+                const cabezalConsumo =
+                await this.prisma.cpf_consumos.create(
+                  {
+                    data: {
+                      nro_trans: nro_trans,
+                      cantidad:cantidadConsumida,
+                      cantidad2:0,
+                      cantidad3:0,
+                      signo:1,
+                      cod_articulo: insumo.cod_articulo,
+                      fecha: formattedDate,
+                      id_motivo_stk: dto.id_motivo_mov_stk,
+                      id_unidad_stk: insumo.id_unidad_stk,
+                      id_empresa: dto.id_empresa,
+                      id_sector: 7,
+                      id_estado_stock: 1,
+                    },
+                  },
+                );
+
+                //bajo de la cpf_Stockaux el consumo
+                const cabezalStock =
+                await this.prisma.cpf_stockaux.create(
+                  {
+                    data: {
+                      nro_trans: nro_trans,
+                      cantidad: cantidadConsumida,
+                      cantidad2: 0,
+                      cantidad3: 0,
+                      signo: -1,
+                      nro_lote:'0',
+                      cod_identidad:'0',
+                      fecha: formattedDate,
+                      id_motivo_stk:dto.id_motivo_mov_stk,
+                      cod_articulo:insumo.cod_articulo,
+                      id_unidad_stk:insumo.id_unidad_stk,
+                      id_empresa: dto.id_empresa,
+                      id_estado_stock:1,
+                      id_sector: 7,
+                    },
+                  },
+                );
+
+
+
+              }
+     
+            idRegistroSanitario = cabezalSanitario.id;
+          }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
           if (dto.clostridiosis) {
@@ -837,6 +1040,168 @@ export class AccionxloteService {
   
     
                 }}); 
+
+
+                if (dto.banio) {
+                  lineasSanitarias =
+                    await this.prisma.cpp_registro_sanitario.create(
+                      {
+                        data: {
+                          nro_trans: nro_trans,
+                          cantidad: dto.cantidad,
+                          cantidad2:cantidad2,
+                          cantidad3:
+                            pesoPromedioUnidad,
+                          fecha: formattedDate,
+                          nro_lote:dto.anexo_lote,
+                          cod_identidad: 
+                            dtoLineas[i].EID,
+                          id_empresa: dto.id_empresa,
+                          cod_articulo:
+                            dto.cod_articulo,
+                          id_padre:
+                            idRegistroSanitario,
+                          id_motivo_sanitario: 7,
+                        },
+                      },
+                    );
+    
+                    await this.prisma.cpf_registro_sanitario.create(
+                      {
+                        data: {
+                          nro_trans: nro_trans,
+                          cantidad: dto.cantidad,
+                          cantidad2:cantidad2,
+                          cantidad3:
+                            pesoPromedioUnidad,
+                          fecha: formattedDate,
+                          signo:1,
+                          nro_lote: dto.anexo_lote,
+                          cod_identidad:
+                            dtoLineas[i].EID,
+                          id_empresa: dto.id_empresa,
+                          cod_articulo:
+                            dto.cod_articulo,
+                          id_padre:
+                            idRegistroSanitario,
+                          id_motivo_sanitario: 7,
+                        },
+                      },
+                    );
+    
+    
+                    const insumo:any = await this.obtengoInsumo(7, dto.id_empresa);
+                    //le asigno el valor al bicho por este remedio
+                      //console.log(insumo.cod_articulo);
+                    if (insumo.cod_articulo!==''){
+                        await this.prisma.cpf_costos.create({
+                          data: {
+    
+                        
+                            nro_trans:nro_trans,
+                            importe_mo:(insumo.precio_unitario_mo/insumo.cantidad_compra) * insumo.dosis,
+                            importe_mn:(insumo.precio_unitario_mn/insumo.cantidad_compra)  * insumo.dosis,
+                            importe_tr:(insumo.precio_unitario_tr/insumo.cantidad_compra)  * insumo.dosis,
+                            tc:insumo.tc,
+                            signo:1,
+                            nro_lote:
+                            dto.anexo_lote,
+                            cod_identidad:dtoLineas[i].EID,
+                            fecha:formattedDate,
+                            nro_trans_ref:nro_trans,
+                            id_empresa: dto.id_empresa,
+                            cod_articulo:dto.cod_articulo,
+                            id_unidad_stk:1,
+                            id_tipo_costo:1
+                            
+    
+                          }});
+                    }
+    
+    
+                }
+
+                if (dto.banio_nitromic) {
+                  lineasSanitarias =
+                    await this.prisma.cpp_registro_sanitario.create(
+                      {
+                        data: {
+                          nro_trans: nro_trans,
+                          cantidad: dto.cantidad,
+                          cantidad2:cantidad2,
+                          cantidad3:
+                            pesoPromedioUnidad,
+                          fecha: formattedDate,
+                          nro_lote:dto.anexo_lote,
+                          cod_identidad: 
+                            dtoLineas[i].EID,
+                          id_empresa: dto.id_empresa,
+                          cod_articulo:
+                            dto.cod_articulo,
+                          id_padre:
+                            idRegistroSanitario,
+                          id_motivo_sanitario: 8,
+                        },
+                      },
+                    );
+    
+                    await this.prisma.cpf_registro_sanitario.create(
+                      {
+                        data: {
+                          nro_trans: nro_trans,
+                          cantidad: dto.cantidad,
+                          cantidad2:cantidad2,
+                          cantidad3:
+                            pesoPromedioUnidad,
+                          fecha: formattedDate,
+                          signo:1,
+                          nro_lote: dto.anexo_lote,
+                          cod_identidad:
+                            dtoLineas[i].EID,
+                          id_empresa: dto.id_empresa,
+                          cod_articulo:
+                            dto.cod_articulo,
+                          id_padre:
+                            idRegistroSanitario,
+                          id_motivo_sanitario: 8,
+                        },
+                      },
+                    );
+    
+    
+                    const insumo:any = await this.obtengoInsumo(8, dto.id_empresa);
+                    //le asigno el valor al bicho por este remedio
+                      //console.log(insumo.cod_articulo);
+                    if (insumo.cod_articulo!==''){
+                        await this.prisma.cpf_costos.create({
+                          data: {
+
+                        
+                            nro_trans:nro_trans,
+                            importe_mo:Math.ceil((parseFloat(cantidad2) * insumo.dosis)) * (insumo.precio_unitario_mo/insumo.cantidad_compra), 
+                            importe_mn:Math.ceil((parseFloat(cantidad2) * insumo.dosis)) * (insumo.precio_unitario_mn/insumo.cantidad_compra),
+                            importe_tr:Math.ceil((parseFloat(cantidad2) * insumo.dosis)) * (insumo.precio_unitario_tr/insumo.cantidad_compra), 
+                            tc:insumo.tc,
+                            signo:1,
+                            nro_lote:
+                            dto.anexo_lote,
+                            cod_identidad:dtoLineas[i].EID,
+                            fecha:formattedDate,
+                            nro_trans_ref:nro_trans,
+                            id_empresa: dto.id_empresa,
+                            cod_articulo:dto.cod_articulo,
+                            id_unidad_stk:1,
+                            id_tipo_costo:1
+                            
+    
+                          }});
+                    }
+    
+    
+                }
+
+
+
 
 
 
@@ -1571,21 +1936,24 @@ export class AccionxloteService {
           //console.log(dtoLineas);
           dtoCpfStockaux: AgregarCpfStockaux;
 
+
+            //console.log(dtoLineas);
           for (
             var i = 0;
             i < dtoLineas.length;
             ++i
           ) {
             //obtengo de cada animal los datos para dar de baja
+            //console.log(dtoLineas[i].EID)
             var animalAProcesarString: any =
               await this.ganadoService.getGanadoById(
-                dtoLineas[i].caravana,
+                dtoLineas[i].EID,
               );
 
             var animalAProcesar =
               animalAProcesarString[0][0];
 
-            console.log(animalAProcesar);
+            //console.log(animalAProcesar);
 
             lineas =
               await this.prisma.cpp_movimiento_stock.create(
@@ -1602,7 +1970,7 @@ export class AccionxloteService {
                     nro_lote:
                       animalAProcesar.nro_lote,
                     cod_identidad:
-                      dtoLineas[i].caravana,
+                      dtoLineas[i].EID,
                     id_empresa:
                       animalAProcesar.id_empresa,
                     cod_articulo:
@@ -1626,10 +1994,10 @@ export class AccionxloteService {
                     nro_lote:
                       animalAProcesar.nro_lote,
                     cod_identidad:
-                      dtoLineas[i].caravana,
+                      dtoLineas[i].EID,
                     fecha: formattedDate,
                     id_motivo_stk:
-                    animalAProcesar.id_motivo_stk,
+                    dto.id_motivo_mov_stk,
                     cod_articulo:
                       animalAProcesar.cod_articulo,
                     id_unidad_stk:
@@ -1659,7 +2027,7 @@ export class AccionxloteService {
                     nro_lote:
                       animalAProcesar.nro_lote,
                     cod_identidad:
-                      dtoLineas[i].caravana,
+                      dtoLineas[i].EID,
                     fecha: formattedDate,
                     id_motivo_stk:
                       dto.id_motivo_mov_stk,
@@ -1771,7 +2139,7 @@ export class AccionxloteService {
               //obtengo de cada animal los datos para dar de baja
               var animalAProcesarString: any =
                 await this.ganadoService.getGanadoById(
-                  dtoLineas[i].caravana,
+                  dtoLineas[i].EID,
                 );
   
               var animalAProcesar =
@@ -1796,7 +2164,7 @@ export class AccionxloteService {
                         nro_trans +
                         '-1',
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       id_empresa:
                         animalAProcesar.id_empresa,
                       cod_articulo:
@@ -1820,7 +2188,7 @@ export class AccionxloteService {
                       nro_lote:
                         animalAProcesar.nro_lote,
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       fecha: formattedDate,
                       id_motivo_stk:
                         dto.id_motivo_mov_stk,
@@ -1854,7 +2222,7 @@ export class AccionxloteService {
                         nro_trans +
                         '-1',
                       cod_identidad:
-                        dtoLineas[i].caravana,
+                        dtoLineas[i].EID,
                       fecha: formattedDate,
                       id_motivo_stk:
                         dto.id_motivo_mov_stk,
@@ -1954,7 +2322,7 @@ export class AccionxloteService {
             //obtengo de cada animal los datos para dar de baja
             var animalAProcesarString: any =
               await this.ganadoService.getGanadoById(
-                dtoLineas[i].caravana,
+                dtoLineas[i].EID,
               );
 
             var animalAProcesar =
@@ -1977,7 +2345,7 @@ export class AccionxloteService {
                     nro_lote:
                       animalAProcesar.nro_lote,
                     cod_identidad:
-                      dtoLineas[i].caravana,
+                      dtoLineas[i].EID,
                     id_empresa:
                       animalAProcesar.id_empresa,
                     cod_articulo:
@@ -2001,7 +2369,7 @@ export class AccionxloteService {
                     nro_lote:
                       animalAProcesar.nro_lote,
                     cod_identidad:
-                      dtoLineas[i].caravana,
+                      dtoLineas[i].EID,
                     fecha: formattedDate,
                     id_motivo_stk:
                       dto.id_motivo_mov_stk,
@@ -2034,7 +2402,7 @@ export class AccionxloteService {
                     nro_lote:
                       animalAProcesar.nro_lote,
                     cod_identidad:
-                      dtoLineas[i].caravana,
+                      dtoLineas[i].EID,
                     fecha: formattedDate,
                     id_motivo_stk:
                       dto.id_motivo_mov_stk,
@@ -2291,6 +2659,7 @@ export class AccionxloteService {
             //Obtengo el nro de transaccion
             let codArticuloInsertActual:string='';
             let codArticuloInsertNuevo:string='';
+            let cantidad_animales_muestrados:number;
 
             cabezal =
               await this.prisma.cpt_movimiento_stock.create(
@@ -2325,12 +2694,9 @@ export class AccionxloteService {
                   {
                     data: {
                       nro_trans: nro_trans,
-                      peso_total_real:
-                        dto.peso_total_real,
-                      peso_total_facturado:
-                        dto.peso_total_facturado,
-                      cantidad_ganado:
-                        dto.cantidad_total,
+                      peso_total_real:dto.peso_total_real,
+                      peso_total_facturado:dto.peso_total_facturado,
+                      cantidad_ganado:dto.cantidad_total,
                       fecha: formattedDate,
                       en_alta: false,
                       id_motivo_sanitario: parseInt(dto.id_motivo_sanitario, 10),
@@ -2360,203 +2726,64 @@ export class AccionxloteService {
 
               var animalAProcesarString: any =
               await this.ganadoService.getGanadoById(
-                dtoLineas[i].caravana,
+                dtoLineas[i].EID,
               );
-
+            
               var animalAProcesar = animalAProcesarString[0][0];
 
-              if (dto.id_motivo_sanitario==6 ){
-                  if (dtoLineas[i].preniada=='S'){
 
-                    codArticuloInsertActual = animalAProcesar.cod_articulo;
-                    codArticuloInsertNuevo = 'VACPRECRU';
-
-                  }else{
-
-
-                    codArticuloInsertActual = animalAProcesar.cod_articulo;
-                    codArticuloInsertNuevo = 'VACVACCRU';
-
-                  }
-
-              }else{
-
-                codArticuloInsertActual = animalAProcesar.cod_articulo;
-                codArticuloInsertNuevo = animalAProcesar.cod_articulo;
-
-              }
               /*
-              dto.cantidad_total viene con la cantidad total de animales
-              dto.peso_total_facturado  es el nuevo peso de la muestra (total de bichos muestreados)
-              dto.peso_total_real es el peso actual de la muestra (total de bichos muestreados)
+              dto.cantidad_total viene con la cantidad total de animales - 60 bichos
+              dto.peso_total_facturado  es el nuevo peso de la muestra (total de bichos muestreados) 15400 - 28 bichos - 550
+              dto.peso_total_real es el peso actual de la muestra (total de bichos muestreados) 25679 - 60 bichos - 428
                 */
-              var pesoPromedioUnidad =(dtoLineas[i].peso *dto.peso_total_facturado) /dto.peso_total_real;
-              var pesoPromedioUnidadFormateado = pesoPromedioUnidad.toFixed(2);
 
-              var nuevoCantidad2 =  (dto.peso_total_facturado * animalAProcesar.cantidad2)/dto.peso_total_real
-              var nuevoCantidad3 =  (dto.peso_total_facturado * animalAProcesar.cantidad3)/dto.peso_total_real
+              //cantidad_animales_muestrados = 1///////////////////////////////////////////////////////
 
+              //console.log(dto.peso_total_real);
+              //console.log(dto.cantidad_total);
 
-              lineas =
-                await this.prisma.cpp_movimiento_stock.create(
-                  {
-                    data: {
-                      nro_trans: nro_trans,
-                      cantidad: 1,
-                      cantidad2: (dtoLineas[i].peso===0) ? nuevoCantidad2.toFixed(2) : dtoLineas[i].peso,
-                      cantidad3: (dtoLineas[i].peso===0) ? nuevoCantidad3.toFixed(2) : dtoLineas[i].peso,
-                      fecha: formattedDate,
-                      nro_lote:animalAProcesar.nro_lote,
-                      cod_identidad: dtoLineas[i].caravana,
-                      id_empresa: dto.id_empresa,
-                      cod_articulo:codArticuloInsertNuevo,
-                    },
-                  },
-                );
-                
+              //console.log(dto.peso_total_facturado);
+              //console.log(dto.cantidad_muestra);
+              //cantidad e kilos anteriores/ la cantidad de bichos procesados
+              var pesoPromedioUnidadAnterior =dto.peso_total_real/dto.cantidad_total;
 
-              if (dto.pesada_muestra){
-                //bajo el peso anterior
-                //console.log(animalAProcesar)
-                //console.log('ACA')
-                      lineasCpfStockaux =
-                        await this.prisma.cpf_stockaux.create(
-                          {
-                            data: {
-                              nro_trans: nro_trans,
-                              cantidad: animalAProcesar.cantidad,
-                              cantidad2: animalAProcesar.cantidad2,
-                              cantidad3: animalAProcesar.cantidad3,
-                              signo: -1,
-                              nro_lote:animalAProcesar.nro_lote,
-                              cod_identidad:animalAProcesar.cod_identidad,
-                              fecha: formattedDate,
-                              id_motivo_stk:animalAProcesar.id_motivo_stk,
-                              cod_articulo:codArticuloInsertActual,
-                              id_unidad_stk:animalAProcesar.id_unidad_stk,
-                              id_empresa: animalAProcesar.id_empresa,
-                              id_estado_stock:animalAProcesar.id_estado_stock,
-                              id_sector: animalAProcesar.id_sector,
-                            },
-                          },
-                        );
-          
+              //cantidad de kilos muestrados  / la cantidad de bichos muestrados
+              var pesoPromedioUnidadActual =0;
+              if (dto.cantidad_muestra !== 0) {
+                pesoPromedioUnidadActual = dto.peso_total_facturado / dto.cantidad_muestra;
+              } else {
+                pesoPromedioUnidadActual = 0;
+              }
+            
+              //console.log(pesoPromedioUnidadActual);
+              //console.log(pesoPromedioUnidadAnterior);
+              //var pesoPromedioUnidadFormateado = pesoPromedioUnidad.toFixed(2);
 
 
-                        //subo el nuevo peso
-                        lineasCpfStockaux =
-                        await this.prisma.cpf_stockaux.create(
-                          {
-                            data: {
-                              nro_trans: nro_trans,
-                              cantidad: 1,
-                              cantidad2: (dtoLineas[i].peso===0) ? nuevoCantidad2.toFixed(2) : dtoLineas[i].peso,
-                              cantidad3: (dtoLineas[i].peso===0) ? nuevoCantidad3.toFixed(2) : dtoLineas[i].peso,
-                              signo: 1,
-                              nro_lote:'0',
-                              cod_identidad:
-                                dtoLineas[i].caravana,
-                              fecha: formattedDate,
-                              id_motivo_stk:dto.id_motivo_mov_stk,
-                              cod_articulo:codArticuloInsertNuevo,
-                              id_unidad_stk:
-                              animalAProcesar.id_unidad_stk,
-                              id_empresa: dto.id_empresa,
-                              id_estado_stock:
-                              animalAProcesar.id_estado_stock,
-                              id_sector: animalAProcesar.id_sector,
-                            },
-                          },
-                        );
+              var nuevoCantidad2 = (pesoPromedioUnidadActual===0) ? animalAProcesar.cantidad2 : ((pesoPromedioUnidadActual * animalAProcesar.cantidad2)/pesoPromedioUnidadAnterior)
+              var nuevoCantidad3 =  (pesoPromedioUnidadActual===0) ? animalAProcesar.cantidad3: ((pesoPromedioUnidadActual * animalAProcesar.cantidad2)/pesoPromedioUnidadAnterior)
+              //console.log(nuevoCantidad2);
+              //console.log(nuevoCantidad3);
 
+                estado = await this.ganadoService.registroSanitarioXLotes(idRegistroSanitario,formattedDate, dtoLineas[i],nuevoCantidad2, nuevoCantidad3, parseInt(dto.id_motivo_sanitario, 10), nro_trans);
+                console.log(estado)
 
-                }else{
+                if (estado.error) {
+                  //console.log('aca1')
+                  //rollback('compraganadomasiva',nro_trans);
 
-                  lineasCpfStockaux =
-                  await this.prisma.cpf_stockaux.create(
-                    {
-                      data: {
-                        nro_trans: nro_trans,
-                        cantidad: animalAProcesar.cantidad,
-                        cantidad2: animalAProcesar.cantidad2,
-                        cantidad3: animalAProcesar.cantidad3,
-                        signo: -1,
-                        nro_lote:animalAProcesar.nro_lote,
-                        cod_identidad:animalAProcesar.cod_identidad,
-                        fecha: formattedDate,
-                        id_motivo_stk:animalAProcesar.id_motivo_stk,
-                        cod_articulo:codArticuloInsertActual,
-                        id_unidad_stk:animalAProcesar.id_unidad_stk,
-                        id_empresa: animalAProcesar.id_empresa,
-                        id_estado_stock:animalAProcesar.id_estado_stock,
-                        id_sector: animalAProcesar.id_sector,
-                      },
-                    },
-                  );
-
-                  lineasCpfStockaux =
-                  await this.prisma.cpf_stockaux.create(
-                    {
-                      data: {
-                        nro_trans: nro_trans,
-                        cantidad: animalAProcesar.cantidad,
-                        cantidad2: animalAProcesar.cantidad2,
-                        cantidad3: animalAProcesar.cantidad3,
-                        signo: 1,
-                        nro_lote:animalAProcesar.nro_lote,
-                        cod_identidad:animalAProcesar.cod_identidad,
-                        fecha: formattedDate,
-                        id_motivo_stk:animalAProcesar.id_motivo_stk,
-                        cod_articulo:codArticuloInsertNuevo,
-                        id_unidad_stk:animalAProcesar.id_unidad_stk,
-                        id_empresa: animalAProcesar.id_empresa,
-                        id_estado_stock:animalAProcesar.id_estado_stock,
-                        id_sector: animalAProcesar.id_sector,
-                      },
-                    },
-                  );
+                  return {
+                    error: true,
+                    message: estado.mensaje,
+                    nro_trans:nro_trans
+                  };
 
                 }
 
-          
-                lineasSanitarias =
-                  await this.prisma.cpp_registro_sanitario.create(
-                    {
-                      data: {
-                        nro_trans: nro_trans,
-                        cantidad: 1,
-                        cantidad2: (dtoLineas[i].peso!==0) ? nuevoCantidad2.toFixed(2) : dtoLineas[i].peso,
-                        cantidad3: (dtoLineas[i].peso!==0) ? nuevoCantidad3.toFixed(2) : dtoLineas[i].peso,
-                        fecha: formattedDate,
-                        nro_lote:'0',
-                        cod_identidad:
-                          dtoLineas[i].caravana,
-                        id_empresa: dto.id_empresa,
-                        cod_articulo:codArticuloInsertNuevo,
-                        id_padre:idRegistroSanitario,
-                        id_motivo_sanitario: parseInt(dto.id_motivo_sanitario, 10),
-                      },
-                    },
-                  );
 
-                  await this.prisma.cpf_registro_sanitario.create(
-                    {
-                      data: {
-                        nro_trans: nro_trans,
-                        cantidad: dto.cantidad,
-                        cantidad2:dtoLineas[i].peso,
-                        cantidad3:pesoPromedioUnidad,
-                        fecha: formattedDate,
-                        signo:1,
-                        nro_lote:'0',
-                        cod_identidad:dtoLineas[i].caravana,
-                        id_empresa: dto.id_empresa,
-                        cod_articulo:codArticuloInsertNuevo,
-                        id_padre:idRegistroSanitario,
-                        id_motivo_sanitario:parseInt(dto.id_motivo_sanitario, 10)
-                      },
-                    },
-                  );
+  
+
 
               
             }
@@ -2653,11 +2880,14 @@ export class AccionxloteService {
                 dto.peso_total_facturado  es el nuevo peso de la muestra (total de bichos muestreados)
                 dto.peso_total_real es el peso actual de la muestra (total de bichos muestreados)
                   */
+
+
+                
                 var pesoPromedioUnidad =(dtoLineas[i].peso *dto.peso_total_facturado) /dto.peso_total_real;
                 var pesoPromedioUnidadFormateado = pesoPromedioUnidad.toFixed(2);
   
-                var nuevoCantidad2 =  (dto.peso_total_facturado * animalAProcesar.cantidad2)/dto.peso_total_real
-                var nuevoCantidad3 =  (dto.peso_total_facturado * animalAProcesar.cantidad3)/dto.peso_total_real
+                nuevoCantidad2 =  (dto.peso_total_facturado * animalAProcesar.cantidad2)/dto.peso_total_real
+                nuevoCantidad3 =  (dto.peso_total_facturado * animalAProcesar.cantidad3)/dto.peso_total_real
                   ///falta resolver el tema de los 
   
   
@@ -2787,16 +3017,17 @@ export class AccionxloteService {
 
     const insumo =  await this.prisma.$queryRaw`SELECT ms.id, ms.descripcion,  ms.frecuencia,  ms.recurrente,  
     ms.unidad_frecuencia,  ms.dosis,  ms.cod_articulo, art.id_unidad_stk,stock.cantidad_stk, 
-	art.nombre, uni.descripcion_corta, ultima_compra.precio_unitario_tr, ultima_compra.precio_unitario_mn, ultima_compra.valor tc,
+	art.nombre, uni.descripcion_corta, ultima_compra.precio_unitario_tr, ultima_compra.precio_unitario_mo, ultima_compra.precio_unitario_mn, ultima_compra.valor tc,
   ultima_compra.cantidad_stk cantidad_compra
       FROM public.motivos_sanitarios ms, articulos art, (SELECT cod_articulo, sum(cantidad*signo) cantidad_stk 
                                  FROM cpf_stockaux cpf 
                                 GROUP BY cod_articulo) stock, unidades uni,
 									  (SELECT f.cod_articulo, tc.valor, max(f.fecha) fecha,
     ROUND(CASE when f.id_moneda = 1 then max(f.precio_unitario)/ tc.valor 
-	  ELSE MAX(f.precio_unitario) END,2) precio_unitario_tr, 
+	  ELSE MAX(f.precio_unitario) END,2)*max(f.cantidad) precio_unitario_tr, 
 	  ROUND(CASE when f.id_moneda = 1 then max(f.precio_unitario) 
-	  ELSE MAX(f.precio_unitario)*tc.valor END,2) precio_unitario_mn,f.cantidad_stk
+	  ELSE MAX(f.precio_unitario)*tc.valor END,2)*max(f.cantidad) precio_unitario_mn,
+    ROUND(max(f.precio_unitario),2)*max(f.cantidad) precio_unitario_mo,f.cantidad_stk
 									  FROM cpp_fact_prov f, tipo_cambio_diario tc
 									  WHERE f.estado='S'
 									  AND date(f.fecha) = date(tc.fecha)

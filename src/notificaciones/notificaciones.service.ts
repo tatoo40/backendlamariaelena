@@ -60,9 +60,9 @@ getEntradaSinFactura(id_empresa:number) {
      AND a.id_empresa=1
      AND a.id_tipo_articulo =1 
      AND NOT EXISTS  (SELECT DISTINCT f.cod_identidad
-FROM cpf_registro_sanitario f
-WHERE f.fecha BETWEEN CURRENT_DATE - INTERVAL '20 days' AND CURRENT_DATE
-AND f.estado='S' AND f.cod_identidad = s.cod_identidad AND f.estado='S' AND f.id_empresa=${id_empresa}) 
+    FROM cpf_registro_sanitario f
+    WHERE f.fecha BETWEEN CURRENT_DATE - INTERVAL '20 days' AND CURRENT_DATE  + INTERVAL '1 days'
+    AND f.estado='S' AND f.cod_identidad = s.cod_identidad AND f.estado='S' AND f.id_empresa=${id_empresa}) 
     GROUP BY  s.cod_articulo, s.nro_lote, s.cod_identidad
     HAVING SUM(s.cantidad*s.signo)=1 `;
 

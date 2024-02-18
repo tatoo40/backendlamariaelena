@@ -124,7 +124,7 @@ import { Public } from 'src/auth/decorator';
       @Param('tabla') tabla:string
 
     ) {
-      console.log('algo pasa')
+      //console.log('algo pasa')
       return this.generalService.deleteGeneralById(
             
             id,
