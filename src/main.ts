@@ -45,7 +45,7 @@ async function bootstrap() {
   app.use(passport.session());
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new PrismaClientExceptionFilter(httpAdapter));
-  await app.listen(3334);
+  await app.listen(443);
   const logger = new Logger('bootstrap');
   logger.log(`Listening on ${await app.getUrl()}`);
 }
