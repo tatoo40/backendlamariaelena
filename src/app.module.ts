@@ -21,6 +21,7 @@ import { CambiarCategoriaModule } from './cambiocategoria/cambiocategoria.module
 import { GeneralEmpresaModule } from './generalempresa/generalempresa.module';
 import { AccionxIndModule } from './accionxind/accionxind.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
+import { ClimaModule } from './clima/clima.module';
 
 
 @Module({
@@ -38,6 +39,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
     GeneralEmpresaModule,
     GeneralPublicModule,
     ReportesModule,
+    ClimaModule,
     AccionRegistroModule,
     AccionxloteModule,
     AccionxIndModule,

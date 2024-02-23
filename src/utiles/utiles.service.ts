@@ -140,7 +140,19 @@ import { GanadoService } from 'src/ganado/ganado.service';
 
 
     }
+    async getParametrosEmpresa(empresa:any) {
 
+      //let empresaId = empresa.toString();
+      const idEmpresa = parseInt(empresa, 10); 
+
+      return await this.prisma.cpt_parametros_x_empresa.findFirst({
+        where: {
+          id_empresa:idEmpresa,
+          estado:'S'
+        },
+      });
+ 
+  }
 
     async guardarRomaneo(dto){
 
@@ -215,7 +227,7 @@ import { GanadoService } from 'src/ganado/ganado.service';
 
              dtoLineas=dto.lineasRomaneo;
     
-               console.log(dtoLineas)
+               //console.log(dtoLineas)
              for (var i = 0; i < dtoLineas.length; ++i) {
 
                  //GRABO LAS LINEAS

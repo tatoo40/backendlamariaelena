@@ -54,6 +54,41 @@ import { Public } from 'src/auth/decorator';
       );
     }
 
+    @Get(':id_empresa/romaneos')
+    getRomaneos(
+
+      @Param('id_empresa', ParseIntPipe) id_empresa: number,
+
+    ) {
+      return this.generalService.getRomaneos(
+        id_empresa
+      );
+    }
+
+    @Get(':id_empresa/consumos')
+    getConsumos(
+
+      @Param('id_empresa', ParseIntPipe) id_empresa: number,
+
+    ) {
+      return this.generalService.getConsumos(
+        id_empresa
+      );
+    }
+    @Get(':id_empresa/sanidad')
+    getSanidad(
+
+      @Param('id_empresa', ParseIntPipe) id_empresa: number,
+
+    ) {
+      return this.generalService.getSanidad(
+        id_empresa
+      );
+    }
+
+
+
+
     @Get(':id_empresa/comprasinsumo')
     getComprasInsumo(
 
